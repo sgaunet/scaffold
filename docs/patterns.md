@@ -27,8 +27,21 @@ if plan.HasConflicts() {
 - Detection without subprocesses: `golang.org/x/mod/modfile` for `go.mod`, a manual
   INI parse for `.git/config`.
 
+## Configuration Resolution
+- Precedence is `flags > env > config file > auto-detection > built-in defaults`,
+  applied per-field in `internal/cli/profilebuild.go` (`buildProfile`).
+- Config "unset" uses pointer fields (`*string`, `*bool`) so an explicit `false`
+  is distinguishable from absent; `strOr`/`boolOr` collapse a tier to its value or
+  fall through.
+- `internal/config` is CLI-free: it parses YAML (two-pass — typed struct plus a
+  `map[string]any` to warn on unknown keys, never erroring on them) and never
+  imports cobra/huh.
+- Interactive (`-i`) seeds each form field from the resolved profile, so accepting
+  every default reproduces the non-interactive result byte-for-byte.
+
 ## Common Utilities
 - `internal/scaffold/registry.go`: `Applicable(profile)` — single source of truth
   for which templates apply.
 - `internal/detect`: `FromGoMod`, `FromGitConfig`, `platformForHost`.
+- `internal/config`: `Load(opts)` — optional YAML defaults + unknown-key warnings.
 - `internal/cli/exit.go`: `ExitCode(err)` — error → exit-code mapping.

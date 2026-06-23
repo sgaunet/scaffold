@@ -1,6 +1,6 @@
 [tools]
-go = "1.25.4"
-"github:go-task/task" = "latest"
-"github:golangci/golangci-lint" = "latest"
+go = "1.26.1"
+"github:go-task/task" = "3.40.1"
+"github:golangci/golangci-lint" = "2.1.6"
 goreleaser = "2.16.0"
 syft = "latest"

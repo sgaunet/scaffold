@@ -35,13 +35,24 @@ the project constitution (`.specify/memory/constitution.md`).
    than separate templates. `--homebrew` (GitHub only) emits a `homebrew_casks:`
    block — the modern replacement for the deprecated formula `brews:` — and wires
    `HOMEBREW_TAP_TOKEN` into the release workflow.
+7. **Config tier + interactive setup (Constitution V)**: an optional YAML config
+   file (`internal/config`, CLI-free) supplies defaults as one precedence tier;
+   `internal/cli/profilebuild.go` resolves each input as
+   `flags > env > config > auto-detection > built-in defaults`. The config file is
+   read-only. `generate -i` runs a `charmbracelet/huh` form (platform-first,
+   conditional, pre-filled from the resolved defaults) that renders on stderr and
+   is gated to a real terminal. The UI deps (`huh`, `x/term`) live only in
+   `internal/cli`; `internal/scaffold` and `internal/config` stay CLI-free
+   (asserted by import-boundary tests).
 
 ## Integration Points
-- No runtime network or subprocess calls. Reads `go.mod` and `.git/config` from disk.
+- No runtime network or subprocess calls. Reads `go.mod`, `.git/config`, and an
+  optional `~/.config/scaffold/config.yml` from disk.
 - Output: tooling / CI / config files only (no application source).
 - One forge platform per run (github / gitlab / forgejo), optional container toggle.
 
 ## Data Flow
-flags + detection → `ProjectProfile` → `TemplateRegistry.Applicable(profile)` →
-`BuildPlan` (Create / Skip / Overwrite) → `render` (`[[ ]]`) → `writer` (atomic
-temp+rename) → `report`.
+flags + env + config file + detection → (interactive form, optional) →
+`ProjectProfile` → `TemplateRegistry.Applicable(profile)` → `BuildPlan`
+(Create / Skip / Overwrite) → `render` (`[[ ]]`) → `writer` (atomic temp+rename) →
+`report`.

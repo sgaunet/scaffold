@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/sgaunet/scaffold/internal/config"
 	"github.com/sgaunet/scaffold/internal/detect"
 	"github.com/sgaunet/scaffold/internal/scaffold"
 	"github.com/spf13/pflag"
@@ -24,9 +25,28 @@ type profileFlags struct {
 	homebrewTap string
 }
 
-// buildProfile resolves a ProjectProfile with precedence flags > env > detected
-// > default (constitution V). Detection is best-effort and never required.
-func buildProfile(f profileFlags) scaffold.ProjectProfile {
+// strOr returns *p when set, else fallback. Models the "unset" config tier.
+func strOr(p *string, fallback string) string {
+	if p != nil {
+		return *p
+	}
+	return fallback
+}
+
+// boolOr returns *p when set, else fallback.
+func boolOr(p *bool, fallback bool) bool {
+	if p != nil {
+		return *p
+	}
+	return fallback
+}
+
+// buildProfile resolves a ProjectProfile applying precedence
+// flags > env > config > detected > built-in default (constitution V, FR-003).
+// Detection is best-effort and never required; the config tier sits just above
+// it (FR-018). Derived values (registry default, version package) are computed
+// after the merge, exactly as before.
+func buildProfile(f profileFlags, cfg config.Config) scaffold.ProjectProfile {
 	dir := f.dir
 	if dir == "" {
 		dir = "."
@@ -35,12 +55,20 @@ func buildProfile(f profileFlags) scaffold.ProjectProfile {
 	mod, hasMod := detect.FromGoMod(dir)
 	rem, hasRem := detect.FromGitConfig(dir)
 
+	// module: flag > config > detected
 	module := f.module
+	if module == "" {
+		module = strOr(cfg.Module, "")
+	}
 	if module == "" && hasMod {
 		module = mod.Path
 	}
 
+	// name: flag > config > detected (go.mod base, else dir base)
 	name := f.name
+	if name == "" {
+		name = strOr(cfg.Name, "")
+	}
 	if name == "" {
 		switch {
 		case hasMod:
@@ -52,22 +80,37 @@ func buildProfile(f profileFlags) scaffold.ProjectProfile {
 		}
 	}
 
+	// binary: flag > config > name
 	binary := f.binary
+	if binary == "" {
+		binary = strOr(cfg.Binary, "")
+	}
 	if binary == "" {
 		binary = name
 	}
 
+	// platform: flag > env > config > detected ("none" normalizes to baseline)
 	platform := f.platform
 	if platform == "" {
 		platform = os.Getenv("SCAFFOLD_PLATFORM")
 	}
+	if platform == "" {
+		platform = strOr(cfg.Platform, "")
+	}
 	if platform == "" && hasRem {
 		platform = rem.Platform
 	}
+	if platform == "none" {
+		platform = ""
+	}
 
+	// owner: flag > env > config > detected
 	owner := f.owner
 	if owner == "" {
 		owner = os.Getenv("SCAFFOLD_OWNER")
+	}
+	if owner == "" {
+		owner = strOr(cfg.Owner, "")
 	}
 	if owner == "" && hasRem {
 		owner = rem.Owner
@@ -78,33 +121,53 @@ func buildProfile(f profileFlags) scaffold.ProjectProfile {
 		host = rem.Host
 	}
 
+	// docker: flag > env > config > false
 	docker := f.docker
 	if !docker {
 		if v := os.Getenv("SCAFFOLD_DOCKER"); v == "1" || v == "true" {
 			docker = true
 		}
 	}
+	if !docker {
+		docker = boolOr(cfg.Docker, false)
+	}
 
+	// registry: flag > env > config > (derived later when docker)
 	registry := f.registry
 	if registry == "" {
 		registry = os.Getenv("SCAFFOLD_REGISTRY")
 	}
+	if registry == "" {
+		registry = strOr(cfg.Registry, "")
+	}
 
+	// mainPath: flag > config > default ./cmd/<binary>
 	mainPath := f.mainPath
+	if mainPath == "" {
+		mainPath = strOr(cfg.MainPath, "")
+	}
 	if mainPath == "" {
 		mainPath = "./cmd/" + binary
 	}
 
+	// homebrew: flag > env > config > false
 	homebrew := f.homebrew
 	if !homebrew {
 		if v := os.Getenv("SCAFFOLD_HOMEBREW"); v == "1" || v == "true" {
 			homebrew = true
 		}
 	}
+	if !homebrew {
+		homebrew = boolOr(cfg.Homebrew, false)
+	}
 
+	// homebrewTap: flag > env > config > default
 	homebrewTap := f.homebrewTap
 	if homebrewTap == "" {
 		homebrewTap = os.Getenv("SCAFFOLD_HOMEBREW_TAP")
+	}
+	if homebrewTap == "" {
+		homebrewTap = strOr(cfg.HomebrewTap, "")
 	}
 	if homebrewTap == "" {
 		homebrewTap = "homebrew-tools"
@@ -131,10 +194,10 @@ func buildProfile(f profileFlags) scaffold.ProjectProfile {
 		MainPath:          mainPath,
 		Registry:          registry,
 		VersionPackage:    versionPackage,
-		GoVersion:         scaffold.DefaultGoVersion,
-		TaskVersion:       scaffold.DefaultTaskVersion,
-		GolangciVersion:   scaffold.DefaultGolangciVersion,
-		GoreleaserVersion: scaffold.DefaultGoreleaserVersion,
+		GoVersion:         strOr(cfg.GoVersion, scaffold.DefaultGoVersion),
+		TaskVersion:       strOr(cfg.TaskVersion, scaffold.DefaultTaskVersion),
+		GolangciVersion:   strOr(cfg.GolangciVersion, scaffold.DefaultGolangciVersion),
+		GoreleaserVersion: strOr(cfg.GoreleaserVersion, scaffold.DefaultGoreleaserVersion),
 		FundingUser:       owner,
 		Homebrew:          homebrew,
 		HomebrewTap:       homebrewTap,

@@ -74,3 +74,12 @@ func (g *globalOpts) logf(format string, args ...any) {
 	}
 	fmt.Fprintf(g.errw, format+"\n", args...)
 }
+
+// vlogf writes an extra-diagnostic line to stderr only under --verbose (and not
+// --quiet). Used for low-signal notes like which config file was loaded.
+func (g *globalOpts) vlogf(format string, args ...any) {
+	if g.quiet || !g.verbose {
+		return
+	}
+	fmt.Fprintf(g.errw, format+"\n", args...)
+}
