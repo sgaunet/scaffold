@@ -7,18 +7,41 @@ import (
 
 func newGenerateCmd(g *globalOpts) *cobra.Command {
 	var (
-		pf     profileFlags
-		force  bool
-		dryRun bool
-		yes    bool
+		pf          profileFlags
+		cf          configFlags
+		force       bool
+		dryRun      bool
+		yes         bool
+		interactive bool
 	)
 	cmd := &cobra.Command{
 		Use:     "generate",
 		Aliases: []string{"gen"},
 		Short:   "Generate tooling/CI/config files for a Go project",
-		Args:    cobra.NoArgs,
+		Long: `Generate a Go project's tooling, CI, and config files from embedded templates.
+
+Inputs are resolved with precedence:
+  flags > env > config file > auto-detection (go.mod / git remote) > built-in defaults
+
+Config file: $XDG_CONFIG_HOME/scaffold/config.yml (else $HOME/.config/scaffold/config.yml),
+overridable with --config / $SCAFFOLD_CONFIG, or disabled with --no-config.
+
+Use --interactive/-i for a guided, platform-first setup form (requires a terminal).`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			profile := buildProfile(pf)
+			cfg, err := g.resolveConfig(cf)
+			if err != nil {
+				return err
+			}
+
+			if interactive {
+				if terr := g.requireTerminal(); terr != nil {
+					return terr
+				}
+				return g.runInteractive(cmd.Context(), pf, cfg, yes)
+			}
+
+			profile := buildProfile(pf, cfg)
 			reg := scaffold.NewRegistry()
 
 			report, genErr := scaffold.Generate(cmd.Context(), reg, profile, scaffold.Options{
@@ -40,9 +63,11 @@ func newGenerateCmd(g *globalOpts) *cobra.Command {
 	}
 
 	addProfileFlags(&pf, cmd.Flags())
+	addConfigFlags(&cf, cmd.Flags())
+	cmd.Flags().BoolVarP(&interactive, "interactive", "i", false, "guided setup form (platform-first; requires a terminal)")
 	cmd.Flags().BoolVarP(&force, "force", "f", false, "overwrite existing files")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "compute and print the plan; write nothing")
-	cmd.Flags().BoolVarP(&yes, "yes", "y", false, "assume yes to interactive overwrite prompts")
+	cmd.Flags().BoolVarP(&yes, "yes", "y", false, "assume yes to the interactive overwrite prompt")
 	return cmd
 }
 

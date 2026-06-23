@@ -86,17 +86,23 @@ task snapshot
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-`specs/001-scaffold-generator/plan.md`
+`specs/002-config-interactive-prompts/plan.md`
 
-Active feature: **Go Project Scaffolder** (`001-scaffold-generator`) — a single static Go CLI
-(`scaffold`) that generates Go project tooling/CI/config files from embedded templates.
-- Stack: Go 1.25+, cobra CLI, stdlib `text/template` + `embed`, `golang.org/x/mod/modfile`.
-- Architecture (constitution-driven): CLI-thin `internal/cli` (only cobra consumer) over a
-  CLI-free core `internal/scaffold` (profile, registry, plan, render, writer, embedded templates);
-  thin `cmd/scaffold/main.go`. Auto-detection in `internal/detect` (parse go.mod + .git/config).
-- Templates use `[[ ]]` delimiters (not `{{ }}`) to avoid clashing with GoReleaser/Actions syntax.
-- Spec/clarifications: tooling files only (no app source); one forge per run; flags-first
-  (TTY-only prompts); skip-existing by default (`--force` to overwrite, exit 10 on conflict).
-- Design docs: `specs/001-scaffold-generator/{research,data-model,quickstart}.md`,
-  `contracts/{cli.md,output.schema.json}`.
+Active feature: **Config-File Defaults & Interactive Setup** (`002-config-interactive-prompts`) —
+adds two new ways to *supply* the existing generation inputs; generated files are unchanged.
+- New CLI-free package `internal/config` (YAML schema + loader + precedence overlay; imports only
+  stdlib + `gopkg.in/yaml.v3`). Extends `internal/cli/profilebuild.go` to insert the config tier:
+  `flags > env > config file > auto-detection > built-in defaults`.
+- Interactive `generate -i`/`--interactive` form via `charmbracelet/huh` (renders on stderr,
+  platform-first, conditional fields, pre-filled from resolved defaults, confirm-before-write).
+  TTY-gated with `golang.org/x/term`; piped/`--quiet`/no-TTY never prompts (`-i` there = usage err).
+- Constitution II boundary: `huh`/`cobra` only in `internal/cli`; `internal/scaffold` and
+  `internal/config` stay CLI-free (assert via a consistency test).
+- Config is read-only (FR-022); default path `$XDG_CONFIG_HOME/scaffold/config.yml` →
+  `$HOME/.config/scaffold/config.yml`; `--config`/`SCAFFOLD_CONFIG`/`--no-config` control it.
+- Design docs: `specs/002-config-interactive-prompts/{research,data-model,quickstart}.md`,
+  `contracts/{cli.md,config.schema.md,config.example.yml}`.
+- Prior feature (still in force): **Go Project Scaffolder** (`001-scaffold-generator`) — the core
+  CLI-thin `internal/cli` over CLI-free `internal/scaffold`; `[[ ]]` template delimiters;
+  skip-existing default (`--force`, exit 10 on conflict); detection in `internal/detect`.
 <!-- SPECKIT END -->

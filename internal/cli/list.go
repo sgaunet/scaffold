@@ -6,13 +6,22 @@ import (
 )
 
 func newListCmd(g *globalOpts) *cobra.Command {
-	var pf profileFlags
+	var (
+		pf profileFlags
+		cf configFlags
+	)
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List the files that would be generated for the given options",
-		Args:  cobra.NoArgs,
+		Long: `List the files that would be generated, applying the same input precedence as
+generate: flags > env > config file > auto-detection > built-in defaults.`,
+		Args: cobra.NoArgs,
 		RunE: func(_ *cobra.Command, _ []string) error {
-			profile := buildProfile(pf)
+			cfg, err := g.resolveConfig(cf)
+			if err != nil {
+				return err
+			}
+			profile := buildProfile(pf, cfg)
 			reg := scaffold.NewRegistry()
 			report, err := scaffold.List(profile, reg)
 			if err != nil {
@@ -22,5 +31,6 @@ func newListCmd(g *globalOpts) *cobra.Command {
 		},
 	}
 	addProfileFlags(&pf, cmd.Flags())
+	addConfigFlags(&cf, cmd.Flags())
 	return cmd
 }

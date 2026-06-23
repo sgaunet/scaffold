@@ -1,0 +1,32 @@
+# scaffold config — default location: $XDG_CONFIG_HOME/scaffold/config.yml
+#                   (falls back to $HOME/.config/scaffold/config.yml)
+#
+# All keys are OPTIONAL. Any key you omit falls through to the next tier:
+#   flags > env > THIS FILE > auto-detection (go.mod / git remote) > built-in defaults
+# This file is READ-ONLY to the tool and must NOT contain secrets/tokens.
+#
+# Point at a different file with --config / $SCAFFOLD_CONFIG, or skip it with --no-config.
+
+# --- Identity (usually left unset so detection fills them per-project) ---
+# name: my-tool
+# binary: my-tool
+# module: github.com/sgaunet/my-tool
+# main: ./cmd/my-tool
+
+# --- Forge / ownership (good global defaults) ---
+owner: sgaunet
+platform: github          # github | gitlab | forgejo | none (baseline only)
+
+# --- Container support ---
+docker: true
+# registry: ghcr.io/sgaunet/my-tool   # only used when docker: true; otherwise derived
+
+# --- Homebrew (requires platform: github) ---
+homebrew: false
+# homebrew-tap: homebrew-tools
+
+# --- Toolchain version pins (omit to use the tool's built-in defaults) ---
+# go-version: "1.26.1"
+# task-version: "3.40.1"
+# golangci-version: "2.1.6"
+# goreleaser-version: "2.16.0"
