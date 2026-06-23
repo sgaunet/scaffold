@@ -1,0 +1,41 @@
+version: '3'
+
+vars:
+  BINFILE: [[ .Binary ]]
+
+tasks:
+  default:
+    cmds:
+      - task: build
+
+  lint:
+    desc: Run golangci-lint
+    cmds:
+      - golangci-lint run ./...
+
+  test:
+    desc: Run tests
+    cmds:
+      - go test ./...
+
+  build:
+    desc: Build the static binary
+    cmds:
+      - CGO_ENABLED=0 go build -trimpath -o {{.BINFILE}} [[ .MainPath ]]
+
+  snapshot:
+    desc: Build a snapshot release
+    cmds:
+      - goreleaser release --snapshot --clean
+
+  release:
+    desc: Cut a release
+    cmds:
+      - goreleaser release --clean
+
+  check-before-commit:
+    desc: Lint, test, and build
+    cmds:
+      - task: lint
+      - task: test
+      - task: build

@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/sgaunet/scaffold/contracts/output.schema.json",
+  "title": "scaffold generate/list --output json",
+  "description": "Machine-readable result emitted on stdout by `scaffold generate` and `scaffold list` when --output=json.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["project", "platform", "docker", "dryRun", "items", "summary"],
+  "properties": {
+    "project": { "type": "string", "description": "Resolved project name" },
+    "platform": { "type": "string", "enum": ["", "github", "gitlab", "forgejo"], "description": "Empty string when no platform was selected or detected" },
+    "docker": { "type": "boolean", "description": "Container support toggle" },
+    "dryRun": { "type": "boolean", "description": "True for `list` and `generate --dry-run`" },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "dest", "action"],
+        "properties": {
+          "name": { "type": "string", "description": "Stable template id" },
+          "dest": { "type": "string", "description": "Destination path relative to target dir" },
+          "action": {
+            "type": "string",
+            "enum": ["created", "skipped", "overwritten", "would-create", "would-skip", "would-overwrite"],
+            "description": "Past-tense (created/skipped/overwritten) for a real generate run; would-* for `list` and `generate --dry-run` (dryRun=true)"
+          },
+          "reason": { "type": "string", "description": "Present when action=skipped (e.g. 'exists, no --force')" }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["created", "skipped", "overwritten", "wouldCreate", "wouldSkip", "wouldOverwrite"],
+      "description": "len(items) == created+skipped+overwritten+wouldCreate+wouldSkip+wouldOverwrite. would-* are 0 in a real generate run; created/skipped/overwritten are 0 in --dry-run/list.",
+      "properties": {
+        "created": { "type": "integer", "minimum": 0 },
+        "skipped": { "type": "integer", "minimum": 0 },
+        "overwritten": { "type": "integer", "minimum": 0 },
+        "wouldCreate": { "type": "integer", "minimum": 0 },
+        "wouldSkip": { "type": "integer", "minimum": 0 },
+        "wouldOverwrite": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}
