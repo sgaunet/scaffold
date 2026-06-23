@@ -35,11 +35,11 @@ func TestProjectProfileValidate(t *testing.T) {
 		{"main path not relative", func(p *scaffold.ProjectProfile) { p.MainPath = "cmd/demo" }, true},
 		{"docker without registry", func(p *scaffold.ProjectProfile) { p.Docker = true; p.Registry = "" }, true},
 		{"docker with registry", func(p *scaffold.ProjectProfile) { p.Docker = true; p.Registry = "ghcr.io/acme/demo" }, false},
-		{"homebrew on github", func(p *scaffold.ProjectProfile) { p.Homebrew = true; p.HomebrewTap = "homebrew-tap" }, false},
+		{"homebrew on github", func(p *scaffold.ProjectProfile) { p.Homebrew = true; p.HomebrewTap = "homebrew-tools" }, false},
 		{"homebrew off ignores tap", func(p *scaffold.ProjectProfile) { p.Homebrew = false; p.HomebrewTap = "" }, false},
 		{"homebrew not github", func(p *scaffold.ProjectProfile) {
 			p.Homebrew = true
-			p.HomebrewTap = "homebrew-tap"
+			p.HomebrewTap = "homebrew-tools"
 			p.Platform = scaffold.PlatformGitLab
 		}, true},
 		{"homebrew empty tap", func(p *scaffold.ProjectProfile) { p.Homebrew = true; p.HomebrewTap = "" }, true},
