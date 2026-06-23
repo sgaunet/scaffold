@@ -7,6 +7,6 @@ tasks:
       - pre-commit install
 
   pre-commit:
-    desc: Run all pre-commit hooks against the whole tree
+    desc: Run all pre-commit hooks
     cmds:
       - pre-commit run --all-files

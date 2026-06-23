@@ -7,7 +7,7 @@ jobs:
   test:
     runs-on: docker
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install mise
         run: |
           curl https://mise.run | sh

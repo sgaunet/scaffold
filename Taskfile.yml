@@ -14,7 +14,7 @@ tasks:
       - golangci-lint run ./...
 
   test:
-    desc: Run unit + golden tests
+    desc: Run tests
     cmds:
       - go test ./...
 
@@ -24,12 +24,12 @@ tasks:
       - CGO_ENABLED=0 go build -trimpath -o {{.BINFILE}} ./cmd/scaffold
 
   snapshot:
-    desc: Build a snapshot release with goreleaser
+    desc: Build a snapshot release
     cmds:
       - goreleaser release --snapshot --clean
 
   release:
-    desc: Cut a release with goreleaser
+    desc: Cut a release
     cmds:
       - goreleaser release --clean
 
