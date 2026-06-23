@@ -67,6 +67,43 @@ func TestDockerToggle(t *testing.T) {
 	}
 }
 
+// TestHomebrewToggle: the brews block + tap token appear only with --homebrew,
+// the tap name is configurable, and --homebrew without github is a usage error.
+func TestHomebrewToggle(t *testing.T) {
+	on := t.TempDir()
+	run(t, on, "generate", "--name", "demo", "--platform", "github", "--owner", "acme", "--homebrew")
+	grl := filepath.Join(on, ".goreleaser.yaml")
+	if !grepFile(t, grl, "homebrew_casks:") {
+		t.Fatal("expected homebrew_casks: block with --homebrew")
+	}
+	if !grepFile(t, grl, "name: homebrew-tap") {
+		t.Fatal("expected default tap name homebrew-tap")
+	}
+	if !grepFile(t, filepath.Join(on, ".github/workflows/release.yml"), "HOMEBREW_TAP_TOKEN") {
+		t.Fatal("expected HOMEBREW_TAP_TOKEN in release workflow with --homebrew")
+	}
+
+	custom := t.TempDir()
+	run(t, custom, "generate", "--name", "demo", "--platform", "github", "--owner", "acme", "--homebrew", "--homebrew-tap", "homebrew-tools")
+	if !grepFile(t, filepath.Join(custom, ".goreleaser.yaml"), "name: homebrew-tools") {
+		t.Fatal("expected custom tap name homebrew-tools")
+	}
+
+	off := t.TempDir()
+	run(t, off, "generate", "--name", "demo", "--platform", "github")
+	if grepFile(t, filepath.Join(off, ".goreleaser.yaml"), "homebrew_casks:") {
+		t.Fatal("homebrew_casks: block must be absent without --homebrew")
+	}
+	if grepFile(t, filepath.Join(off, ".github/workflows/release.yml"), "HOMEBREW_TAP_TOKEN") {
+		t.Fatal("HOMEBREW_TAP_TOKEN must be absent without --homebrew")
+	}
+
+	bad := t.TempDir()
+	if r := run(t, bad, "generate", "--name", "demo", "--platform", "gitlab", "--homebrew"); r.code != 2 {
+		t.Fatalf("--homebrew without github: want exit 2, got %d (stderr=%s)", r.code, r.stderr)
+	}
+}
+
 // TestRerunExit10 (T057): re-run skips all → exit 10; --force → exit 0.
 func TestRerunExit10(t *testing.T) {
 	dir := t.TempDir()

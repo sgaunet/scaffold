@@ -30,6 +30,11 @@ the project constitution (`.specify/memory/constitution.md`).
    → exit code 10; non-conflicting files are still written.
 5. **Atomic writes (Constitution VI)**: temp-file + `os.Rename`; `ctx.Err()` is
    checked between files so SIGINT cancels cleanly with no partial output.
+6. **Optional inline blocks**: GoReleaser sections are gated inside the one
+   `goreleaser.yaml.tmpl` by `[[ if .Docker ]]` and `[[ if .Homebrew ]]` rather
+   than separate templates. `--homebrew` (GitHub only) emits a `homebrew_casks:`
+   block — the modern replacement for the deprecated formula `brews:` — and wires
+   `HOMEBREW_TAP_TOKEN` into the release workflow.
 
 ## Integration Points
 - No runtime network or subprocess calls. Reads `go.mod` and `.git/config` from disk.
