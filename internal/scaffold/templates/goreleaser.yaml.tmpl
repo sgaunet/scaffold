@@ -1,0 +1,82 @@
+version: 2
+
+project_name: [[ .Binary ]]
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: [[ .Binary ]]
+    main: [[ .MainPath ]]
+    binary: [[ .Binary ]]
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X [[ .VersionPackage ]].Version={{ .Version }}
+      - -X [[ .VersionPackage ]].Commit={{ .Commit }}
+      - -X [[ .VersionPackage ]].Date={{ .Date }}
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - formats: [tar.gz]
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+
+checksum:
+  name_template: "checksums.txt"
+
+sboms:
+  - artifacts: archive
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+[[ if .Docker ]]
+dockers:
+  - image_templates:
+      - "[[ .Registry ]]:{{ .Version }}-amd64"
+    use: buildx
+    dockerfile: Dockerfile
+    goarch: amd64
+    build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--label=org.opencontainers.image.title={{ .ProjectName }}"
+      - "--label=org.opencontainers.image.version={{ .Version }}"
+  - image_templates:
+      - "[[ .Registry ]]:{{ .Version }}-arm64"
+    use: buildx
+    dockerfile: Dockerfile
+    goarch: arm64
+    build_flag_templates:
+      - "--platform=linux/arm64"
+      - "--label=org.opencontainers.image.title={{ .ProjectName }}"
+      - "--label=org.opencontainers.image.version={{ .Version }}"
+
+docker_manifests:
+  - name_template: "[[ .Registry ]]:{{ .Version }}"
+    image_templates:
+      - "[[ .Registry ]]:{{ .Version }}-amd64"
+      - "[[ .Registry ]]:{{ .Version }}-arm64"
+  - name_template: "[[ .Registry ]]:latest"
+    image_templates:
+      - "[[ .Registry ]]:{{ .Version }}-amd64"
+      - "[[ .Registry ]]:{{ .Version }}-arm64"
+[[ end ]]

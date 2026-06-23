@@ -1,0 +1,75 @@
+stages:
+  - lint
+  - test
+  - build
+  - release
+
+variables:
+  # Disable shallow cloning so goreleaser can diff tags for the changelog.
+  GIT_DEPTH: 0
+  MISE_DATA_DIR: $CI_PROJECT_DIR/.mise/mise-data
+  GOPATH: $CI_PROJECT_DIR/.cache/go
+  GOMODCACHE: $CI_PROJECT_DIR/.cache/go/pkg/mod
+  GOCACHE: $CI_PROJECT_DIR/.cache/go-build
+
+default:
+  image:
+    name: registry.gitlab.com/sgaunet/mise-base-img:latest
+    entrypoint: ['']
+  cache:
+    - key:
+        prefix: mise-
+        files: ["mise.toml"]
+      paths:
+        - $MISE_DATA_DIR
+    - key:
+        prefix: go-
+        files: ["go.sum"]
+      paths:
+        - .cache/go/pkg/mod
+        - .cache/go-build
+  before_script:
+    - mise install
+
+lint:
+  stage: lint
+  script:
+    - mise exec -- task lint
+
+test:
+  stage: test
+  script:
+    - mise exec -- task test
+
+build-snapshot:
+  stage: build
+[[ if .Docker ]]
+  services:
+    - docker:24-dind
+[[ end ]]
+  script:
+[[ if .Docker ]]
+    - mkdir -p ~/.docker/cli-plugins
+    - ln -sf "$(mise where aqua:docker/buildx)/docker-cli-plugin-docker-buildx" ~/.docker/cli-plugins/docker-buildx
+    - mise exec --command 'docker buildx create --use'
+[[ end ]]
+    - mise exec --command 'goreleaser --snapshot --clean'
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
+    - when: on_success
+
+release:
+  stage: release
+[[ if .Docker ]]
+  services:
+    - docker:24-dind
+  before_script:
+    - mise install
+    - 'echo -e "machine $CI_SERVER_HOST\nlogin gitlab-ci-token\npassword ${CI_JOB_TOKEN}" > ~/.netrc'
+    - echo "${CI_REGISTRY_PASSWORD}" | mise exec -- docker login -u "${CI_REGISTRY_USER}" --password-stdin $CI_REGISTRY
+[[ end ]]
+  script:
+    - mise exec --command 'goreleaser release --clean'
+  rules:
+    - if: $CI_COMMIT_TAG

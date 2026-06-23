@@ -1,0 +1,27 @@
+name: Release
+on:
+  push:
+    tags: ['v*']
+jobs:
+  release:
+    runs-on: docker
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install mise
+        run: |
+          curl https://mise.run | sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+      - uses: actions/cache@v4
+        with:
+          path: ~/.local/share/mise
+          key: mise-${{ hashFiles('mise.toml') }}
+      - run: mise install
+[[ if .Docker ]]
+      - name: Log in to the container registry
+        run: echo "${{ secrets.REGISTRY_PASSWORD }}" | mise exec -- docker login [[ .Host ]] -u "${{ secrets.REGISTRY_USERNAME }}" --password-stdin
+[[ end ]]
+      - run: mise exec -- task release
+        env:
+          GITEA_TOKEN: ${{ secrets.GITEA_TOKEN }}

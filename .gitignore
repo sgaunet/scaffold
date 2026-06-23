@@ -1,0 +1,8 @@
+/scaffold
+/dist/
+*.test
+*.out
+.DS_Store
+/specs
+/.specify
+/.claude
