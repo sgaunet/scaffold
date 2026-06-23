@@ -77,6 +77,6 @@ homebrew_casks:
       email: sgaunet@users.noreply.github.com
     repository:
       owner: sgaunet
-      name: homebrew-tap
+      name: homebrew-tools
       token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
 

@@ -87,9 +87,9 @@ func TestHomebrewRendering(t *testing.T) {
 		t.Parallel()
 		p := base
 		p.Homebrew = true
-		p.HomebrewTap = "homebrew-tap"
+		p.HomebrewTap = "homebrew-tools"
 		grl := renderNamed(t, p, "goreleaser")
-		for _, want := range []string{"homebrew_casks:", "name: homebrew-tap", "owner: acme", "name: demo", "shell_parameter_format: cobra", "HOMEBREW_TAP_TOKEN"} {
+		for _, want := range []string{"homebrew_casks:", "name: homebrew-tools", "owner: acme", "name: demo", "shell_parameter_format: cobra", "HOMEBREW_TAP_TOKEN"} {
 			if !strings.Contains(grl, want) {
 				t.Fatalf("goreleaser missing %q:\n%s", want, grl)
 			}

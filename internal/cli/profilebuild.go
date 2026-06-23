@@ -107,7 +107,7 @@ func buildProfile(f profileFlags) scaffold.ProjectProfile {
 		homebrewTap = os.Getenv("SCAFFOLD_HOMEBREW_TAP")
 	}
 	if homebrewTap == "" {
-		homebrewTap = "homebrew-tap"
+		homebrewTap = "homebrew-tools"
 	}
 
 	plat := scaffold.PlatformID(platform)
@@ -153,5 +153,5 @@ func addProfileFlags(flags *profileFlags, set *pflag.FlagSet) {
 	set.StringVarP(&flags.dir, "dir", "C", ".", "target project directory")
 	set.BoolVar(&flags.docker, "docker", false, "enable container support")
 	set.BoolVar(&flags.homebrew, "homebrew", false, "publish a Homebrew formula on release (github only)")
-	set.StringVar(&flags.homebrewTap, "homebrew-tap", "", "Homebrew tap repo name (with --homebrew; default homebrew-tap)")
+	set.StringVar(&flags.homebrewTap, "homebrew-tap", "", "Homebrew tap repo name (with --homebrew; default homebrew-tools)")
 }

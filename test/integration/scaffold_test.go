@@ -76,17 +76,17 @@ func TestHomebrewToggle(t *testing.T) {
 	if !grepFile(t, grl, "homebrew_casks:") {
 		t.Fatal("expected homebrew_casks: block with --homebrew")
 	}
-	if !grepFile(t, grl, "name: homebrew-tap") {
-		t.Fatal("expected default tap name homebrew-tap")
+	if !grepFile(t, grl, "name: homebrew-tools") {
+		t.Fatal("expected default tap name homebrew-tools")
 	}
 	if !grepFile(t, filepath.Join(on, ".github/workflows/release.yml"), "HOMEBREW_TAP_TOKEN") {
 		t.Fatal("expected HOMEBREW_TAP_TOKEN in release workflow with --homebrew")
 	}
 
 	custom := t.TempDir()
-	run(t, custom, "generate", "--name", "demo", "--platform", "github", "--owner", "acme", "--homebrew", "--homebrew-tap", "homebrew-tools")
-	if !grepFile(t, filepath.Join(custom, ".goreleaser.yaml"), "name: homebrew-tools") {
-		t.Fatal("expected custom tap name homebrew-tools")
+	run(t, custom, "generate", "--name", "demo", "--platform", "github", "--owner", "acme", "--homebrew", "--homebrew-tap", "homebrew-custom")
+	if !grepFile(t, filepath.Join(custom, ".goreleaser.yaml"), "name: homebrew-custom") {
+		t.Fatal("expected custom tap name homebrew-custom")
 	}
 
 	off := t.TempDir()
