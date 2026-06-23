@@ -11,15 +11,17 @@ import (
 
 // profileFlags is the set of profile-shaping flags shared by generate and list.
 type profileFlags struct {
-	name     string
-	binary   string
-	module   string
-	platform string
-	owner    string
-	registry string
-	mainPath string
-	dir      string
-	docker   bool
+	name        string
+	binary      string
+	module      string
+	platform    string
+	owner       string
+	registry    string
+	mainPath    string
+	dir         string
+	docker      bool
+	homebrew    bool
+	homebrewTap string
 }
 
 // buildProfile resolves a ProjectProfile with precedence flags > env > detected
@@ -93,6 +95,21 @@ func buildProfile(f profileFlags) scaffold.ProjectProfile {
 		mainPath = "./cmd/" + binary
 	}
 
+	homebrew := f.homebrew
+	if !homebrew {
+		if v := os.Getenv("SCAFFOLD_HOMEBREW"); v == "1" || v == "true" {
+			homebrew = true
+		}
+	}
+
+	homebrewTap := f.homebrewTap
+	if homebrewTap == "" {
+		homebrewTap = os.Getenv("SCAFFOLD_HOMEBREW_TAP")
+	}
+	if homebrewTap == "" {
+		homebrewTap = "homebrew-tap"
+	}
+
 	plat := scaffold.PlatformID(platform)
 	if docker && registry == "" {
 		registry = scaffold.RegistryDefault(plat, host, owner, binary)
@@ -119,6 +136,8 @@ func buildProfile(f profileFlags) scaffold.ProjectProfile {
 		GolangciVersion:   scaffold.DefaultGolangciVersion,
 		GoreleaserVersion: scaffold.DefaultGoreleaserVersion,
 		FundingUser:       owner,
+		Homebrew:          homebrew,
+		HomebrewTap:       homebrewTap,
 	}
 }
 
@@ -133,4 +152,6 @@ func addProfileFlags(flags *profileFlags, set *pflag.FlagSet) {
 	set.StringVar(&flags.mainPath, "main", "", "main package dir (default: ./cmd/<binary>)")
 	set.StringVarP(&flags.dir, "dir", "C", ".", "target project directory")
 	set.BoolVar(&flags.docker, "docker", false, "enable container support")
+	set.BoolVar(&flags.homebrew, "homebrew", false, "publish a Homebrew formula on release (github only)")
+	set.StringVar(&flags.homebrewTap, "homebrew-tap", "", "Homebrew tap repo name (with --homebrew; default homebrew-tap)")
 }

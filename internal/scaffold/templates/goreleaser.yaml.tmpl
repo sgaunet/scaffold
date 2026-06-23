@@ -80,3 +80,33 @@ docker_manifests:
       - "[[ .Registry ]]:{{ .Version }}-amd64"
       - "[[ .Registry ]]:{{ .Version }}-arm64"
 [[ end ]]
+[[ if .Homebrew ]]
+homebrew_casks:
+  - name: [[ .Binary ]]
+    homepage: "https://github.com/[[ .Owner ]]/[[ .ProjectName ]]"
+    description: "[[ .ProjectName ]]"
+    binaries:
+      - [[ .Binary ]]
+    generate_completions_from_executable:
+      args:
+        - completion
+      shell_parameter_format: cobra
+      shells:
+        - bash
+        - zsh
+        - fish
+    # Unsigned binaries are quarantined by macOS Gatekeeper; strip the attribute.
+    hooks:
+      post:
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/[[ .Binary ]]"]
+          end
+    commit_author:
+      name: [[ .Owner ]]
+      email: [[ .Owner ]]@users.noreply.github.com
+    repository:
+      owner: [[ .Owner ]]
+      name: [[ .HomebrewTap ]]
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+[[ end ]]

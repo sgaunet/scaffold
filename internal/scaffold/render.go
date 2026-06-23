@@ -36,6 +36,8 @@ type RenderContext struct {
 	GoreleaserVersion string
 	FundingUser       string
 	TokenEnv          string
+	Homebrew          bool
+	HomebrewTap       string
 }
 
 // NewRenderContext derives the render context from a profile.
@@ -64,6 +66,8 @@ func NewRenderContext(p ProjectProfile) RenderContext {
 		GoreleaserVersion: p.GoreleaserVersion,
 		FundingUser:       p.FundingUser,
 		TokenEnv:          tokenEnv,
+		Homebrew:          p.Homebrew,
+		HomebrewTap:       p.HomebrewTap,
 	}
 }
 

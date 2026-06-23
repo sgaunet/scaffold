@@ -55,9 +55,27 @@ platform-independent baseline is generated — no CI or platform extras.
 - **GitLab**: `.gitlab-ci.yml`
 - **`--docker`**: `Dockerfile` plus `dockers:`/`docker_manifests:` blocks and CI
   image build/publish steps
+- **`--homebrew`** (GitHub only): a `homebrew_casks:` block in `.goreleaser.yaml`
+  that publishes a Homebrew cask to `<owner>/<tap>` on release, plus the
+  `HOMEBREW_TAP_TOKEN` secret wired into the release workflow
 
 Every generated CI job provisions its toolchain through
 [`mise`](https://mise.jdx.dev) rather than ad-hoc installs.
+
+### Homebrew
+
+With `--homebrew` (requires `--platform github`), releases publish a Homebrew
+**cask** (the modern replacement for deprecated formula `brews`) to a tap repo
+you own. Before your first release:
+
+1. Create the tap repo `<owner>/homebrew-tap` (or pass `--homebrew-tap <name>`).
+2. Add a `HOMEBREW_TAP_TOKEN` repository secret — a token with write access to
+   the tap repo (a classic PAT with `repo` scope, or a fine-grained token
+   scoped to the tap).
+
+The cask installs the binary, generates bash/zsh/fish completions from the
+binary's `completion` subcommand, and strips the macOS quarantine attribute for
+unsigned binaries.
 
 ## Flags (`generate`)
 
@@ -68,6 +86,8 @@ Every generated CI job provisions its toolchain through
 | `--module` | parsed from `go.mod` | module path |
 | `--platform` | detected from `.git/config` origin | `github\|gitlab\|forgejo` (optional) |
 | `--docker` | false | enable container support |
+| `--homebrew` | false | publish a Homebrew cask on release (github only) |
+| `--homebrew-tap` | `homebrew-tap` | tap repo name (with `--homebrew`) |
 | `--owner` | derived from remote/module | FUNDING + registry owner |
 | `--registry` | per-platform default | image base (docker only) |
 | `--main` | `./cmd/<binary>` | main package dir |

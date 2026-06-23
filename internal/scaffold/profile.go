@@ -28,6 +28,8 @@ type ProjectProfile struct {
 	GolangciVersion   string
 	GoreleaserVersion string
 	FundingUser       string
+	Homebrew          bool
+	HomebrewTap       string
 }
 
 // Validate checks the profile and returns a wrapped ErrUsage on bad input
@@ -50,6 +52,14 @@ func (p ProjectProfile) Validate() error {
 	}
 	if p.Docker && p.Registry == "" {
 		return fmt.Errorf("%w: --registry could not be resolved but --docker is set; pass --registry", ErrUsage)
+	}
+	if p.Homebrew {
+		if p.Platform != PlatformGitHub {
+			return fmt.Errorf("%w: --homebrew requires --platform github", ErrUsage)
+		}
+		if !nameRe.MatchString(p.HomebrewTap) {
+			return fmt.Errorf("%w: invalid homebrew tap %q: must match %s", ErrUsage, p.HomebrewTap, nameRe.String())
+		}
 	}
 	return nil
 }

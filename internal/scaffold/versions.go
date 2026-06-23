@@ -6,5 +6,5 @@ const (
 	DefaultGoVersion         = "1.26.1"
 	DefaultTaskVersion       = "3.40.1"
 	DefaultGolangciVersion   = "2.1.6"
-	DefaultGoreleaserVersion = "2.5.1"
+	DefaultGoreleaserVersion = "2.16.0"
 )
