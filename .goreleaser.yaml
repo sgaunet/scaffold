@@ -50,3 +50,33 @@ changelog:
       - "^test:"
       - "^chore:"
 
+
+homebrew_casks:
+  - name: scaffold
+    homepage: "https://github.com/sgaunet/scaffold"
+    description: "scaffold"
+    binaries:
+      - scaffold
+    generate_completions_from_executable:
+      args:
+        - completion
+      shell_parameter_format: cobra
+      shells:
+        - bash
+        - zsh
+        - fish
+    # Unsigned binaries are quarantined by macOS Gatekeeper; strip the attribute.
+    hooks:
+      post:
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/scaffold"]
+          end
+    commit_author:
+      name: sgaunet
+      email: sgaunet@users.noreply.github.com
+    repository:
+      owner: sgaunet
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+
