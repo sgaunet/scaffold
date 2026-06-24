@@ -27,7 +27,7 @@ func ondiskProfile(t *testing.T, mutate func(*scaffold.ProjectProfile)) scaffold
 		Owner: "acme", Host: "github.com", Platform: scaffold.PlatformGitHub,
 		MainPath: "./cmd/demo", VersionPackage: "github.com/acme/demo/internal/cli",
 		GoVersion: "1.26.1", TaskVersion: "3.40.1",
-		GolangciVersion: "2.1.6", GoreleaserVersion: "2.16.0",
+		GolangciVersion: "2.12.1", GoreleaserVersion: "2.16.0",
 		FundingUser: "acme", HomebrewTap: "homebrew-tools",
 	}
 	if mutate != nil {
