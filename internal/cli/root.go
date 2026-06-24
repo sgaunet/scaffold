@@ -32,15 +32,16 @@ func NewRootCmd(out, errw io.Writer) *cobra.Command {
 		Long: `scaffold generates a Go project's tooling, CI, and config files from
 templates embedded in the binary.
 
-Pick at most one forge platform (--platform github|gitlab|forgejo; optional)
-and an optional container toggle (--docker). Existing files are skipped unless
---force is passed.
+'scaffold generate' runs an interactive, platform-first setup form and requires
+a terminal; its prompts are pre-filled from a config file, environment, and
+auto-detection. 'scaffold list' previews the file set non-interactively (pipe-
+and CI-safe). Existing files are skipped; generate prompts before overwriting.
 
 Exit codes:
   0   success
   1   generic failure
-  2   usage error (bad flag, invalid name, unknown platform)
-  10  conflict (one or more existing files skipped; re-run with --force)`,
+  2   usage error (no terminal for generate, bad flag, invalid name)
+  10  conflict (one or more existing files skipped)`,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		PersistentPreRunE: func(_ *cobra.Command, _ []string) error {
@@ -56,6 +57,13 @@ Exit codes:
 	}
 	root.SetOut(out)
 	root.SetErr(errw)
+
+	// Flag-parse failures (unknown/removed flags, missing values) are usage
+	// errors: wrap them as ErrUsage so they map to exit code 2, not 1. Inherited
+	// by every subcommand via cobra's FlagErrorFunc parent lookup.
+	root.SetFlagErrorFunc(func(_ *cobra.Command, err error) error {
+		return fmt.Errorf("%w: %w", scaffold.ErrUsage, err)
+	})
 
 	root.PersistentFlags().StringVar(&g.output, "output", outputText, "output format for stdout: text|json")
 	root.PersistentFlags().BoolVarP(&g.quiet, "quiet", "q", false, "suppress human progress on stderr")

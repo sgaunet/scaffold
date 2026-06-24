@@ -28,16 +28,19 @@ if plan.HasConflicts() {
   INI parse for `.git/config`.
 
 ## Configuration Resolution
-- Precedence is `flags > env > config file > auto-detection > built-in defaults`,
-  applied per-field in `internal/cli/profilebuild.go` (`buildProfile`).
+- Precedence is `env > config file > auto-detection > built-in defaults`, applied
+  per-field in `internal/cli/profilebuild.go` (`buildProfile(dir, cfg)`). There is
+  no per-input CLI-flag tier — `generate` is interactive-only and `list` is
+  config-driven.
 - Config "unset" uses pointer fields (`*string`, `*bool`) so an explicit `false`
   is distinguishable from absent; `strOr`/`boolOr` collapse a tier to its value or
   fall through.
 - `internal/config` is CLI-free: it parses YAML (two-pass — typed struct plus a
   `map[string]any` to warn on unknown keys, never erroring on them) and never
   imports cobra/huh.
-- Interactive (`-i`) seeds each form field from the resolved profile, so accepting
-  every default reproduces the non-interactive result byte-for-byte.
+- The interactive `generate` form seeds each field from the resolved profile
+  (`buildProfile`), so accepting every default reproduces the same result `list`
+  would resolve, byte-for-byte.
 
 ## Common Utilities
 - `internal/scaffold/registry.go`: `Applicable(profile)` — single source of truth

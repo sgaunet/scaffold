@@ -6,22 +6,23 @@ import (
 )
 
 func newListCmd(g *globalOpts) *cobra.Command {
-	var (
-		pf profileFlags
-		cf configFlags
-	)
+	var cf configFlags
 	cmd := &cobra.Command{
 		Use:   "list",
-		Short: "List the files that would be generated for the given options",
+		Short: "List the files that would be generated",
 		Long: `List the files that would be generated, applying the same input precedence as
-generate: flags > env > config file > auto-detection > built-in defaults.`,
+generate: env > config file > auto-detection > built-in defaults.
+
+list is read-only and never prompts, so it is the way to preview the file set
+in a pipe or CI. Use the config file (--config / $SCAFFOLD_CONFIG) to choose the
+platform and options.`,
 		Args: cobra.NoArgs,
 		RunE: func(_ *cobra.Command, _ []string) error {
 			cfg, err := g.resolveConfig(cf)
 			if err != nil {
 				return err
 			}
-			profile := buildProfile(pf, cfg)
+			profile := buildProfile(".", cfg)
 			reg := scaffold.NewRegistry()
 			report, err := scaffold.List(profile, reg)
 			if err != nil {
@@ -30,7 +31,6 @@ generate: flags > env > config file > auto-detection > built-in defaults.`,
 			return writeReport(g.out, g.output, report)
 		},
 	}
-	addProfileFlags(&pf, cmd.Flags())
 	addConfigFlags(&cf, cmd.Flags())
 	return cmd
 }

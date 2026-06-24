@@ -7,23 +7,7 @@ import (
 	"github.com/sgaunet/scaffold/internal/config"
 	"github.com/sgaunet/scaffold/internal/detect"
 	"github.com/sgaunet/scaffold/internal/scaffold"
-	"github.com/spf13/pflag"
 )
-
-// profileFlags is the set of profile-shaping flags shared by generate and list.
-type profileFlags struct {
-	name        string
-	binary      string
-	module      string
-	platform    string
-	owner       string
-	registry    string
-	mainPath    string
-	dir         string
-	docker      bool
-	homebrew    bool
-	homebrewTap string
-}
 
 // strOr returns *p when set, else fallback. Models the "unset" config tier.
 func strOr(p *string, fallback string) string {
@@ -41,13 +25,14 @@ func boolOr(p *bool, fallback bool) bool {
 	return fallback
 }
 
-// buildProfile resolves a ProjectProfile applying precedence
-// flags > env > config > detected > built-in default (constitution V, FR-003).
-// Detection is best-effort and never required; the config tier sits just above
-// it (FR-018). Derived values (registry default, version package) are computed
-// after the merge, exactly as before.
-func buildProfile(f profileFlags, cfg config.Config) scaffold.ProjectProfile {
-	dir := f.dir
+// buildProfile resolves a ProjectProfile from dir applying precedence
+// env > config > detected > built-in default (constitution V, FR-003). The CLI
+// flag tier was removed when generate became interactive-only; the config file
+// is now the way to change the values proposed in the form (FR-018). Detection
+// is best-effort and never required. Derived values (registry default, version
+// package) are computed after the merge. dir is the detection root and is always
+// "." for the real commands; tests pass an isolated directory.
+func buildProfile(dir string, cfg config.Config) scaffold.ProjectProfile {
 	if dir == "" {
 		dir = "."
 	}
@@ -55,20 +40,14 @@ func buildProfile(f profileFlags, cfg config.Config) scaffold.ProjectProfile {
 	mod, hasMod := detect.FromGoMod(dir)
 	rem, hasRem := detect.FromGitConfig(dir)
 
-	// module: flag > config > detected
-	module := f.module
-	if module == "" {
-		module = strOr(cfg.Module, "")
-	}
+	// module: config > detected
+	module := strOr(cfg.Module, "")
 	if module == "" && hasMod {
 		module = mod.Path
 	}
 
-	// name: flag > config > detected (go.mod base, else dir base)
-	name := f.name
-	if name == "" {
-		name = strOr(cfg.Name, "")
-	}
+	// name: config > detected (go.mod base, else dir base)
+	name := strOr(cfg.Name, "")
 	if name == "" {
 		switch {
 		case hasMod:
@@ -80,20 +59,14 @@ func buildProfile(f profileFlags, cfg config.Config) scaffold.ProjectProfile {
 		}
 	}
 
-	// binary: flag > config > name
-	binary := f.binary
-	if binary == "" {
-		binary = strOr(cfg.Binary, "")
-	}
+	// binary: config > name
+	binary := strOr(cfg.Binary, "")
 	if binary == "" {
 		binary = name
 	}
 
-	// platform: flag > env > config > detected ("none" normalizes to baseline)
-	platform := f.platform
-	if platform == "" {
-		platform = os.Getenv("SCAFFOLD_PLATFORM")
-	}
+	// platform: env > config > detected ("none" normalizes to baseline)
+	platform := os.Getenv("SCAFFOLD_PLATFORM")
 	if platform == "" {
 		platform = strOr(cfg.Platform, "")
 	}
@@ -104,11 +77,8 @@ func buildProfile(f profileFlags, cfg config.Config) scaffold.ProjectProfile {
 		platform = ""
 	}
 
-	// owner: flag > env > config > detected
-	owner := f.owner
-	if owner == "" {
-		owner = os.Getenv("SCAFFOLD_OWNER")
-	}
+	// owner: env > config > detected
+	owner := os.Getenv("SCAFFOLD_OWNER")
 	if owner == "" {
 		owner = strOr(cfg.Owner, "")
 	}
@@ -121,51 +91,38 @@ func buildProfile(f profileFlags, cfg config.Config) scaffold.ProjectProfile {
 		host = rem.Host
 	}
 
-	// docker: flag > env > config > false
-	docker := f.docker
-	if !docker {
-		if v := os.Getenv("SCAFFOLD_DOCKER"); v == "1" || v == "true" {
-			docker = true
-		}
+	// docker: env > config > false
+	docker := false
+	if v := os.Getenv("SCAFFOLD_DOCKER"); v == "1" || v == "true" {
+		docker = true
 	}
 	if !docker {
 		docker = boolOr(cfg.Docker, false)
 	}
 
-	// registry: flag > env > config > (derived later when docker)
-	registry := f.registry
-	if registry == "" {
-		registry = os.Getenv("SCAFFOLD_REGISTRY")
-	}
+	// registry: env > config > (derived later when docker)
+	registry := os.Getenv("SCAFFOLD_REGISTRY")
 	if registry == "" {
 		registry = strOr(cfg.Registry, "")
 	}
 
-	// mainPath: flag > config > default ./cmd/<binary>
-	mainPath := f.mainPath
-	if mainPath == "" {
-		mainPath = strOr(cfg.MainPath, "")
-	}
+	// mainPath: config > default ./cmd/<binary>
+	mainPath := strOr(cfg.MainPath, "")
 	if mainPath == "" {
 		mainPath = "./cmd/" + binary
 	}
 
-	// homebrew: flag > env > config > false
-	homebrew := f.homebrew
-	if !homebrew {
-		if v := os.Getenv("SCAFFOLD_HOMEBREW"); v == "1" || v == "true" {
-			homebrew = true
-		}
+	// homebrew: env > config > false
+	homebrew := false
+	if v := os.Getenv("SCAFFOLD_HOMEBREW"); v == "1" || v == "true" {
+		homebrew = true
 	}
 	if !homebrew {
 		homebrew = boolOr(cfg.Homebrew, false)
 	}
 
-	// homebrewTap: flag > env > config > default
-	homebrewTap := f.homebrewTap
-	if homebrewTap == "" {
-		homebrewTap = os.Getenv("SCAFFOLD_HOMEBREW_TAP")
-	}
+	// homebrewTap: env > config > default
+	homebrewTap := os.Getenv("SCAFFOLD_HOMEBREW_TAP")
 	if homebrewTap == "" {
 		homebrewTap = strOr(cfg.HomebrewTap, "")
 	}
@@ -202,19 +159,4 @@ func buildProfile(f profileFlags, cfg config.Config) scaffold.ProjectProfile {
 		Homebrew:          homebrew,
 		HomebrewTap:       homebrewTap,
 	}
-}
-
-// addProfileFlags registers the shared profile-shaping flags on a command.
-func addProfileFlags(flags *profileFlags, set *pflag.FlagSet) {
-	set.StringVar(&flags.name, "name", "", "project name (default: go.mod module base, else dir name)")
-	set.StringVar(&flags.binary, "binary", "", "binary/image name (default: --name)")
-	set.StringVar(&flags.module, "module", "", "module path (default: parsed from go.mod)")
-	set.StringVar(&flags.platform, "platform", "", "forge platform: github|gitlab|forgejo (optional)")
-	set.StringVar(&flags.owner, "owner", "", "repo owner (default: derived from remote/module)")
-	set.StringVar(&flags.registry, "registry", "", "image registry base (docker only)")
-	set.StringVar(&flags.mainPath, "main", "", "main package dir (default: ./cmd/<binary>)")
-	set.StringVarP(&flags.dir, "dir", "C", ".", "target project directory")
-	set.BoolVar(&flags.docker, "docker", false, "enable container support")
-	set.BoolVar(&flags.homebrew, "homebrew", false, "publish a Homebrew formula on release (github only)")
-	set.StringVar(&flags.homebrewTap, "homebrew-tap", "", "Homebrew tap repo name (with --homebrew; default homebrew-tools)")
 }

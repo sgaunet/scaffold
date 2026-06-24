@@ -87,8 +87,10 @@ func tapVisible(a *answers) bool      { return a.platform == "github" && a.homeb
 // runInteractive drives the guided setup: collect answers (platform-first,
 // conditional), show the dry-run plan, gate overwrite on conflicts, then write
 // through the normal Generate path. Cancellation writes nothing (FR-015).
-func (g *globalOpts) runInteractive(ctx context.Context, pf profileFlags, cfg config.Config, assumeYes bool) error {
-	seed := buildProfile(pf, cfg)
+// generate is interactive-only, so it always targets the current directory and
+// seeds the form from env > config > detection > defaults.
+func (g *globalOpts) runInteractive(ctx context.Context, cfg config.Config) error {
+	seed := buildProfile(".", cfg)
 	a := seedAnswers(seed)
 
 	form := huh.NewForm(
@@ -132,12 +134,13 @@ func (g *globalOpts) runInteractive(ctx context.Context, pf profileFlags, cfg co
 		return err
 	}
 
-	return g.generateInteractive(ctx, profile, orDot(pf.dir), assumeYes)
+	return g.generateInteractive(ctx, profile, ".")
 }
 
 // generateInteractive computes the plan, reviews it on stderr, gates overwrite on
-// conflicts, then writes through the shared Generate path (FR-013/FR-016).
-func (g *globalOpts) generateInteractive(ctx context.Context, profile scaffold.ProjectProfile, dir string, assumeYes bool) error {
+// conflicts, then writes through the shared Generate path (FR-013/FR-016). When
+// existing files would be skipped it always prompts before overwriting.
+func (g *globalOpts) generateInteractive(ctx context.Context, profile scaffold.ProjectProfile, dir string) error {
 	reg := scaffold.NewRegistry()
 
 	preview, perr := scaffold.Generate(ctx, reg, profile, scaffold.Options{Dir: dir, DryRun: true})
@@ -149,8 +152,8 @@ func (g *globalOpts) generateInteractive(ctx context.Context, profile scaffold.P
 		g.logf("  %-14s %s", it.Action, it.Dest)
 	}
 
-	force := assumeYes
-	if preview.Summary.WouldSkip > 0 && !assumeYes {
+	force := false
+	if preview.Summary.WouldSkip > 0 {
 		overwrite := false // default No (skip-existing); FR-016
 		confirm := huh.NewForm(huh.NewGroup(
 			huh.NewConfirm().

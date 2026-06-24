@@ -2,8 +2,8 @@
 
 A single static Go CLI that generates a Go project's tooling, CI, and config
 files from templates embedded in the binary. Pick at most one forge platform and
-an optional container toggle; existing files are skipped unless you pass
-`--force`.
+an optional container toggle; existing files are skipped, and `generate` prompts
+before overwriting any of them.
 
 Every generated file ships inside the binary (no network at generation time) and
 is a reviewable template in this repo under
@@ -21,29 +21,60 @@ task build
 
 | Command | Purpose |
 |---------|---------|
-| `scaffold generate` (alias `gen`) | Generate tooling/CI/config files for a project |
-| `scaffold list` | List the files that would be generated for the given options |
+| `scaffold generate` (alias `gen`) | Guided setup form, then generate the files (requires a terminal) |
+| `scaffold list` | List the files that would be generated (non-interactive, pipe/CI-safe) |
 | `scaffold version` | Print version, commit, and build date |
 
 ## Usage
 
+`scaffold generate` runs a short, guided form — **platform first**, then only the
+questions relevant to your answers — and writes the files after you confirm.
+There are no per-input flags: every prompt is pre-filled from your config file,
+environment, and what the tool auto-detects, so usually you just press Enter
+through it. Because it is interactive, `generate` **requires a terminal**.
+
 ```bash
-# Inside an existing Go repo: detect name/module/platform, generate GitHub tooling
+# Inside an existing Go repo: walk through setup, accepting the detected defaults
 scaffold generate
 
-# Preview a Forgejo project that ships a container image — writes nothing
-scaffold generate --platform forgejo --docker --dry-run
+# Preview what would be written for the resolved config — writes nothing, no terminal needed
+scaffold list
 
-# Fully explicit, scriptable, JSON result on stdout, overwrite existing files
-scaffold generate --name semver --module github.com/sgaunet/semver \
-  --platform github --force --output json --quiet
-
-# See what a gitlab+docker run would write, as JSON, without touching disk
-scaffold list --platform gitlab --docker --output json
+# See a plan as JSON, without touching disk (drive the inputs from a config file)
+scaffold list --config ./ci/scaffold.yml --output json
 ```
 
-`--platform` is **optional**: with no platform (and none detected) only the
-platform-independent baseline is generated — no CI or platform extras.
+The form starts with the platform choice, including **none** for the
+platform-independent baseline only — in which case no CI or platform extras are
+generated.
+
+In a pipe, under `--quiet`, or with no terminal, `generate` exits with a usage
+error (exit 2) instead of hanging; use `scaffold list` to preview the file set
+non-interactively.
+
+### Defaults come from a config file
+
+There are no profile flags. Instead, a config file supplies the values proposed
+in the form (and the inputs `list` resolves). Create
+`~/.config/scaffold/config.yml` (honors `$XDG_CONFIG_HOME`):
+
+```yaml
+owner: sgaunet
+platform: github      # github | gitlab | forgejo | none
+docker: true
+# Other recognized keys: name, binary, module, registry, main, homebrew,
+# homebrew-tap, go-version, task-version, golangci-version, goreleaser-version
+```
+
+| Flag | Default | Meaning |
+|------|---------|---------|
+| `--config <path>` | `$XDG_CONFIG_HOME/scaffold/config.yml`, else `$HOME/.config/scaffold/config.yml` | config file to load (an explicit path that is missing → exit 2) |
+| `--no-config` | false | ignore any config file (reproducible/CI runs) |
+
+Global: `--output text\|json`, `--quiet`/`-q`, `--verbose`/`-v`, and `NO_COLOR`.
+Precedence is **env (`SCAFFOLD_*`) > config file > auto-detection (`go.mod` /
+`.git/config`) > built-in defaults**. `SCAFFOLD_CONFIG` sets the config path
+(same as `--config`).
 
 ### What gets generated
 
@@ -53,22 +84,23 @@ platform-independent baseline is generated — no CI or platform extras.
   `.github/dependabot.yml`, `.github/FUNDING.yml`
 - **Forgejo**: `.forgejo/workflows/{lint,test,snapshot,release}.yml`
 - **GitLab**: `.gitlab-ci.yml`
-- **`--docker`**: `Dockerfile` plus `dockers:`/`docker_manifests:` blocks and CI
-  image build/publish steps
-- **`--homebrew`** (GitHub only): a `homebrew_casks:` block in `.goreleaser.yaml`
-  that publishes a Homebrew cask to `<owner>/<tap>` on release, plus the
-  `HOMEBREW_TAP_TOKEN` secret wired into the release workflow
+- **Container support** (`docker: true`): `Dockerfile` plus
+  `dockers:`/`docker_manifests:` blocks and CI image build/publish steps
+- **Homebrew** (`homebrew: true`, GitHub only): a `homebrew_casks:` block in
+  `.goreleaser.yaml` that publishes a Homebrew cask to `<owner>/<tap>` on
+  release, plus the `HOMEBREW_TAP_TOKEN` secret wired into the release workflow
 
 Every generated CI job provisions its toolchain through
 [`mise`](https://mise.jdx.dev) rather than ad-hoc installs.
 
 ### Homebrew
 
-With `--homebrew` (requires `--platform github`), releases publish a Homebrew
+With `homebrew: true` (requires `platform: github`), releases publish a Homebrew
 **cask** (the modern replacement for deprecated formula `brews`) to a tap repo
 you own. Before your first release:
 
-1. Create the tap repo `<owner>/homebrew-tap` (or pass `--homebrew-tap <name>`).
+1. Create the tap repo `<owner>/homebrew-tools` (or set `homebrew-tap: <name>`
+   in the config).
 2. Add a `HOMEBREW_TAP_TOKEN` repository secret — a token with write access to
    the tap repo (a classic PAT with `repo` scope, or a fine-grained token
    scoped to the tap).
@@ -77,36 +109,14 @@ The cask installs the binary, generates bash/zsh/fish completions from the
 binary's `completion` subcommand, and strips the macOS quarantine attribute for
 unsigned binaries.
 
-## Flags (`generate`)
-
-| Flag | Default | Meaning |
-|------|---------|---------|
-| `--name` | go.mod module base, else dir name | project name |
-| `--binary` | `--name` | binary/image name |
-| `--module` | parsed from `go.mod` | module path |
-| `--platform` | detected from `.git/config` origin | `github\|gitlab\|forgejo` (optional) |
-| `--docker` | false | enable container support |
-| `--homebrew` | false | publish a Homebrew cask on release (github only) |
-| `--homebrew-tap` | `homebrew-tap` | tap repo name (with `--homebrew`) |
-| `--owner` | derived from remote/module | FUNDING + registry owner |
-| `--registry` | per-platform default | image base (docker only) |
-| `--main` | `./cmd/<binary>` | main package dir |
-| `--dir` / `-C` | `.` | target project directory |
-| `--force` / `-f` | false | overwrite existing files |
-| `--dry-run` | false | compute + print the plan; write nothing |
-| `--yes` / `-y` | false | assume yes to interactive overwrite prompts |
-
-Global: `--output text|json`, `--quiet`/`-q`, `--verbose`/`-v`, and `NO_COLOR`.
-Precedence is **flags > env (`SCAFFOLD_*`) > detected > defaults**.
-
 ## Exit codes
 
 | Code | Meaning |
 |------|---------|
 | `0` | Success |
 | `1` | Generic failure |
-| `2` | Usage error (bad flag, invalid name, unknown platform) |
-| `10` | Conflict — one or more existing files were skipped; re-run with `--force` |
+| `2` | Usage error (no terminal for `generate`, bad flag, invalid/missing config value) |
+| `10` | Conflict — one or more existing files were skipped; re-run and confirm the overwrite prompt |
 
 ## Develop
 

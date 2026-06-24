@@ -53,12 +53,13 @@ func (g *globalOpts) resolveConfig(cf configFlags) (config.Config, error) {
 // tests can substitute a deterministic stub.
 var isTerminal = func(fd uintptr) bool { return term.IsTerminal(int(fd)) }
 
-// requireTerminal enforces that interactive mode runs only on a real terminal
-// (FR-014, constitution IV). Returns a usage error otherwise so `-i` in a pipe,
-// under --quiet, or with no TTY fails loudly (exit 2) instead of hanging.
+// requireTerminal enforces that the interactive generate form runs only on a
+// real terminal (FR-014, constitution IV). Returns a usage error otherwise so
+// generate in a pipe, under --quiet, or with no TTY fails loudly (exit 2)
+// instead of hanging.
 func (g *globalOpts) requireTerminal() error {
 	if g.quiet || !isTerminal(os.Stdin.Fd()) || !isTerminal(os.Stderr.Fd()) {
-		return fmt.Errorf("%w: interactive mode requires a terminal (remove -i, or use flags/config)", scaffold.ErrUsage)
+		return fmt.Errorf("%w: generate requires a terminal; set the defaults in the config file and run it in an interactive shell (use 'scaffold list' to preview non-interactively)", scaffold.ErrUsage)
 	}
 	return nil
 }

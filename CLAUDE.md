@@ -92,10 +92,13 @@ Active feature: **Config-File Defaults & Interactive Setup** (`002-config-intera
 adds two new ways to *supply* the existing generation inputs; generated files are unchanged.
 - New CLI-free package `internal/config` (YAML schema + loader + precedence overlay; imports only
   stdlib + `gopkg.in/yaml.v3`). Extends `internal/cli/profilebuild.go` to insert the config tier:
-  `flags > env > config file > auto-detection > built-in defaults`.
-- Interactive `generate -i`/`--interactive` form via `charmbracelet/huh` (renders on stderr,
-  platform-first, conditional fields, pre-filled from resolved defaults, confirm-before-write).
-  TTY-gated with `golang.org/x/term`; piped/`--quiet`/no-TTY never prompts (`-i` there = usage err).
+  `env > config file > auto-detection > built-in defaults` (the per-input CLI-flag tier was
+  removed in the 2026-06-24 amendment: `generate` is interactive-only).
+- `generate` is interactive-only: no profile flags, no `-i`. It always runs the
+  `charmbracelet/huh` form (renders on stderr, platform-first, conditional fields, pre-filled
+  from resolved defaults, confirm-before-write) and requires a terminal (TTY-gated with
+  `golang.org/x/term`; piped/`--quiet`/no-TTY → usage error, exit 2). `scaffold list` is the
+  non-interactive preview. `generate`/`list` keep only `--config`/`--no-config` + globals.
 - Constitution II boundary: `huh`/`cobra` only in `internal/cli`; `internal/scaffold` and
   `internal/config` stay CLI-free (assert via a consistency test).
 - Config is read-only (FR-022); default path `$XDG_CONFIG_HOME/scaffold/config.yml` →

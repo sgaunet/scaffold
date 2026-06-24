@@ -54,19 +54,20 @@ func TestConfig_ValuesAppliedWithZeroFlags(t *testing.T) {
 	}
 }
 
-func TestConfig_FlagOverridesConfig(t *testing.T) {
+func TestConfig_EnvOverridesConfig(t *testing.T) {
 	work := t.TempDir()
 	cfg := writeConfig(t, "platform: github\n")
 
-	r := run(t, work, "list", "--config", cfg, "--platform", "gitlab")
+	// The CLI flag tier was removed; env is the highest-precedence override.
+	r := runEnv(t, work, []string{"SCAFFOLD_PLATFORM=gitlab"}, "list", "--config", cfg)
 	if r.code != 0 {
 		t.Fatalf("exit=%d stderr=%s", r.code, r.stderr)
 	}
 	if !strings.Contains(r.stdout, ".gitlab-ci.yml") {
-		t.Errorf("flag --platform gitlab should win; stdout:\n%s", r.stdout)
+		t.Errorf("env SCAFFOLD_PLATFORM=gitlab should win; stdout:\n%s", r.stdout)
 	}
 	if strings.Contains(r.stdout, ".github/dependabot.yml") {
-		t.Errorf("config github should have been overridden; stdout:\n%s", r.stdout)
+		t.Errorf("config github should have been overridden by env; stdout:\n%s", r.stdout)
 	}
 }
 
@@ -94,15 +95,14 @@ func TestConfig_NoConfigIgnoresFile(t *testing.T) {
 	}
 }
 
-func TestConfig_MalformedIsUsageErrorAndWritesNothing(t *testing.T) {
+func TestConfig_MalformedIsUsageError(t *testing.T) {
 	work := t.TempDir()
 	cfg := writeConfig(t, "platform: : broken\n  - nope\n")
 
-	r := run(t, work, "generate", "--config", cfg)
+	r := run(t, work, "list", "--config", cfg)
 	if r.code != 2 {
 		t.Fatalf("malformed config should exit 2, got %d (stderr=%s)", r.code, r.stderr)
 	}
-	mustNotExist(t, work, ".goreleaser.yaml")
 }
 
 func TestConfig_FromEnvVar(t *testing.T) {

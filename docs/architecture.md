@@ -26,24 +26,26 @@ the project constitution (`.specify/memory/constitution.md`).
    Actions `{{ }}` expressions, which pass through verbatim.
 3. **Predicate registry**: one `Applies(profile)` per template drives both
    `generate` and `list`, so new templates appear in both automatically.
-4. **Skip-existing by default**: `--force` to overwrite; any skip → `ErrConflict`
-   → exit code 10; non-conflicting files are still written.
+4. **Skip-existing by default**: the interactive overwrite prompt confirms before
+   clobbering; any skip → `ErrConflict` → exit code 10; non-conflicting files are
+   still written.
 5. **Atomic writes (Constitution VI)**: temp-file + `os.Rename`; `ctx.Err()` is
    checked between files so SIGINT cancels cleanly with no partial output.
 6. **Optional inline blocks**: GoReleaser sections are gated inside the one
    `goreleaser.yaml.tmpl` by `[[ if .Docker ]]` and `[[ if .Homebrew ]]` rather
-   than separate templates. `--homebrew` (GitHub only) emits a `homebrew_casks:`
-   block — the modern replacement for the deprecated formula `brews:` — and wires
-   `HOMEBREW_TAP_TOKEN` into the release workflow.
-7. **Config tier + interactive setup (Constitution V)**: an optional YAML config
-   file (`internal/config`, CLI-free) supplies defaults as one precedence tier;
-   `internal/cli/profilebuild.go` resolves each input as
-   `flags > env > config > auto-detection > built-in defaults`. The config file is
-   read-only. `generate -i` runs a `charmbracelet/huh` form (platform-first,
-   conditional, pre-filled from the resolved defaults) that renders on stderr and
-   is gated to a real terminal. The UI deps (`huh`, `x/term`) live only in
-   `internal/cli`; `internal/scaffold` and `internal/config` stay CLI-free
-   (asserted by import-boundary tests).
+   than separate templates. Homebrew (GitHub only, `homebrew: true`) emits a
+   `homebrew_casks:` block — the modern replacement for the deprecated formula
+   `brews:` — and wires `HOMEBREW_TAP_TOKEN` into the release workflow.
+7. **Config-driven, interactive-only `generate` (Constitution V)**: `generate`
+   has no per-input flags; it always runs a `charmbracelet/huh` form
+   (platform-first, conditional, pre-filled from the resolved defaults), renders
+   on stderr, and requires a real terminal (no TTY → usage error, exit 2). An
+   optional YAML config file (`internal/config`, CLI-free) supplies those
+   defaults as one precedence tier; `internal/cli/profilebuild.go` resolves each
+   input as `env > config > auto-detection > built-in defaults`. The config file
+   is read-only. `list` is the non-interactive, pipe-safe preview. The UI deps
+   (`huh`, `x/term`) live only in `internal/cli`; `internal/scaffold` and
+   `internal/config` stay CLI-free (asserted by import-boundary tests).
 
 ## Integration Points
 - No runtime network or subprocess calls. Reads `go.mod`, `.git/config`, and an

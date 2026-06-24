@@ -46,7 +46,7 @@ func TestPlatformIsFirstAndIncludesNone(t *testing.T) {
 	t.Parallel()
 	// Seeding a baseline profile must present platform as "none" (selectable),
 	// confirming the baseline option exists (FR-011).
-	seed := buildProfile(profileFlags{dir: t.TempDir()}, config.Config{})
+	seed := buildProfile(t.TempDir(), config.Config{})
 	a := seedAnswers(seed)
 	if a.platform != "none" {
 		t.Fatalf("baseline seed platform should be 'none', got %q", a.platform)
@@ -62,7 +62,7 @@ func TestSeedAnswersMatchResolvedProfile(t *testing.T) {
 		Platform: strp("github"), Owner: strp("seedowner"),
 		Name: strp("seedtool"), Docker: boolp(true),
 	}
-	seed := buildProfile(profileFlags{dir: dir}, cfg)
+	seed := buildProfile(dir, cfg)
 	a := seedAnswers(seed)
 
 	if a.platform != "github" {
@@ -97,7 +97,7 @@ func TestAcceptAllDefaultsEqualsNonInteractive(t *testing.T) {
 	for i, cfg := range configs {
 		t.Run(string(rune('A'+i)), func(t *testing.T) {
 			t.Parallel()
-			seed := buildProfile(profileFlags{dir: dir}, cfg)
+			seed := buildProfile(dir, cfg)
 			got := seedAnswers(seed).toProfile(seed)
 			if got != seed {
 				t.Errorf("accept-all profile diverged from non-interactive:\n got=%+v\nwant=%+v", got, seed)

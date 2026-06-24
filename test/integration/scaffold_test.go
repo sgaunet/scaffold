@@ -1,171 +1,74 @@
 package integration_test
 
 import (
-	"bytes"
 	"encoding/json"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 )
 
-// TestBaseline (T035): generate with no platform → six baseline files, no CI,
-// no residual delimiters (US1).
-func TestBaseline(t *testing.T) {
-	dir := t.TempDir()
-	r := run(t, dir, "generate", "--name", "demo")
+// generate is interactive-only and requires a terminal, so the binary-level
+// suite exercises the non-interactive surface: list (plan preview), version, and
+// help. The on-disk file-set guarantee for generate lives in the internal/scaffold
+// package tests (generate_ondisk_test.go), which drive the CLI-free Generate API.
+
+// TestList_BaselineFileSet: list with no config writes nothing and reports the
+// six baseline files with no platform CI in the plan (US1, pipe-safe).
+func TestList_BaselineFileSet(t *testing.T) {
+	work := t.TempDir()
+	r := run(t, work, "list", "--no-config")
 	if r.code != 0 {
 		t.Fatalf("exit=%d stderr=%s", r.code, r.stderr)
 	}
 	for _, f := range []string{".goreleaser.yaml", "mise.toml", ".golangci.yml", ".pre-commit-config.yaml", "Taskfile.yml", "Taskfile_dev.yml"} {
-		mustExist(t, dir, f)
-	}
-	mustNotExist(t, dir, ".github")
-	mustNotExist(t, dir, ".gitlab-ci.yml")
-	assertNoDelimiters(t, dir)
-}
-
-// TestPlatformMatrix (T044): each platform's files + GitHub-only extras.
-func TestPlatformMatrix(t *testing.T) {
-	t.Run("github", func(t *testing.T) {
-		dir := t.TempDir()
-		run(t, dir, "generate", "--name", "demo", "--platform", "github")
-		for _, f := range []string{".github/workflows/linter.yml", ".github/workflows/test.yml", ".github/workflows/snapshot.yml", ".github/workflows/release.yml", ".github/dependabot.yml", ".github/FUNDING.yml"} {
-			mustExist(t, dir, f)
+		if !strings.Contains(r.stdout, f) {
+			t.Errorf("baseline plan missing %s:\n%s", f, r.stdout)
 		}
-	})
-	t.Run("forgejo", func(t *testing.T) {
-		dir := t.TempDir()
-		run(t, dir, "generate", "--name", "demo", "--platform", "forgejo")
-		mustExist(t, dir, ".forgejo/workflows/release.yml")
-		mustNotExist(t, dir, ".github/dependabot.yml")
-		mustNotExist(t, dir, ".github/FUNDING.yml")
-	})
-	t.Run("gitlab", func(t *testing.T) {
-		dir := t.TempDir()
-		run(t, dir, "generate", "--name", "demo", "--platform", "gitlab")
-		mustExist(t, dir, ".gitlab-ci.yml")
-		mustNotExist(t, dir, ".github")
-		mustNotExist(t, dir, ".forgejo")
-	})
-}
-
-// TestDockerToggle (T051): container artifacts appear only with --docker.
-func TestDockerToggle(t *testing.T) {
-	on := t.TempDir()
-	run(t, on, "generate", "--name", "demo", "--platform", "github", "--docker", "--owner", "acme")
-	mustExist(t, on, "Dockerfile")
-	if !grepFile(t, filepath.Join(on, ".goreleaser.yaml"), "dockers:") {
-		t.Fatal("expected dockers: block with --docker")
 	}
-
-	off := t.TempDir()
-	run(t, off, "generate", "--name", "demo", "--platform", "github")
-	mustNotExist(t, off, "Dockerfile")
-	if grepFile(t, filepath.Join(off, ".goreleaser.yaml"), "dockers:") {
-		t.Fatal("dockers: block must be absent without --docker")
+	for _, f := range []string{".github/", ".gitlab-ci.yml", ".forgejo/", "Dockerfile"} {
+		if strings.Contains(r.stdout, f) {
+			t.Errorf("baseline plan leaked %s:\n%s", f, r.stdout)
+		}
 	}
 }
 
-// TestHomebrewToggle: the brews block + tap token appear only with --homebrew,
-// the tap name is configurable, and --homebrew without github is a usage error.
-func TestHomebrewToggle(t *testing.T) {
-	on := t.TempDir()
-	run(t, on, "generate", "--name", "demo", "--platform", "github", "--owner", "acme", "--homebrew")
-	grl := filepath.Join(on, ".goreleaser.yaml")
-	if !grepFile(t, grl, "homebrew_casks:") {
-		t.Fatal("expected homebrew_casks: block with --homebrew")
-	}
-	if !grepFile(t, grl, "name: homebrew-tools") {
-		t.Fatal("expected default tap name homebrew-tools")
-	}
-	if !grepFile(t, filepath.Join(on, ".github/workflows/release.yml"), "HOMEBREW_TAP_TOKEN") {
-		t.Fatal("expected HOMEBREW_TAP_TOKEN in release workflow with --homebrew")
-	}
-
-	custom := t.TempDir()
-	run(t, custom, "generate", "--name", "demo", "--platform", "github", "--owner", "acme", "--homebrew", "--homebrew-tap", "homebrew-custom")
-	if !grepFile(t, filepath.Join(custom, ".goreleaser.yaml"), "name: homebrew-custom") {
-		t.Fatal("expected custom tap name homebrew-custom")
-	}
-
-	off := t.TempDir()
-	run(t, off, "generate", "--name", "demo", "--platform", "github")
-	if grepFile(t, filepath.Join(off, ".goreleaser.yaml"), "homebrew_casks:") {
-		t.Fatal("homebrew_casks: block must be absent without --homebrew")
-	}
-	if grepFile(t, filepath.Join(off, ".github/workflows/release.yml"), "HOMEBREW_TAP_TOKEN") {
-		t.Fatal("HOMEBREW_TAP_TOKEN must be absent without --homebrew")
-	}
-
-	bad := t.TempDir()
-	if r := run(t, bad, "generate", "--name", "demo", "--platform", "gitlab", "--homebrew"); r.code != 2 {
-		t.Fatalf("--homebrew without github: want exit 2, got %d (stderr=%s)", r.code, r.stderr)
-	}
-}
-
-// TestRerunExit10 (T057): re-run skips all → exit 10; --force → exit 0.
-func TestRerunExit10(t *testing.T) {
-	dir := t.TempDir()
-	if r := run(t, dir, "generate", "--name", "demo", "--platform", "github"); r.code != 0 {
-		t.Fatalf("first run exit=%d", r.code)
-	}
-	if r := run(t, dir, "generate", "--name", "demo", "--platform", "github"); r.code != 10 {
-		t.Fatalf("re-run exit=%d, want 10", r.code)
-	}
-	if r := run(t, dir, "generate", "--name", "demo", "--platform", "github", "--force"); r.code != 0 {
-		t.Fatalf("force exit=%d, want 0", r.code)
-	}
-}
-
-// TestDryRunStreams (T058): dry-run writes nothing; JSON on stdout, logs on stderr.
-func TestDryRunStreams(t *testing.T) {
-	dir := t.TempDir()
-	r := run(t, dir, "generate", "--name", "demo", "--platform", "github", "--dry-run", "--output", "json")
+// TestList_DockerInPlan: a docker config adds the Dockerfile to the plan.
+func TestList_DockerInPlan(t *testing.T) {
+	work := t.TempDir()
+	cfg := writeConfig(t, "platform: github\nowner: acme\ndocker: true\n")
+	r := run(t, work, "list", "--config", cfg)
 	if r.code != 0 {
-		t.Fatalf("exit=%d", r.code)
+		t.Fatalf("exit=%d stderr=%s", r.code, r.stderr)
 	}
-	entries, _ := os.ReadDir(dir)
-	if len(entries) != 0 {
-		t.Fatalf("dry-run wrote %d entries", len(entries))
-	}
-	var report map[string]any
-	if err := json.Unmarshal([]byte(r.stdout), &report); err != nil {
-		t.Fatalf("stdout not JSON: %v", err)
-	}
-	if strings.Contains(r.stdout, "created,") {
-		t.Fatal("human summary leaked to stdout")
+	if !strings.Contains(r.stdout, "Dockerfile") {
+		t.Errorf("docker config should list Dockerfile:\n%s", r.stdout)
 	}
 }
 
-// TestJSONInvariant (T056): generate + list JSON honor the summary invariant
-// and required keys.
-func TestJSONInvariant(t *testing.T) {
-	check := func(t *testing.T, raw string) {
-		t.Helper()
-		var d struct {
-			Project string `json:"project"`
-			Items   []any  `json:"items"`
-			Summary struct {
-				Created, Skipped, Overwritten, WouldCreate, WouldSkip, WouldOverwrite int
-			} `json:"summary"`
-		}
-		if err := json.Unmarshal([]byte(raw), &d); err != nil {
-			t.Fatalf("bad json: %v", err)
-		}
-		s := d.Summary
-		if len(d.Items) != s.Created+s.Skipped+s.Overwritten+s.WouldCreate+s.WouldSkip+s.WouldOverwrite {
-			t.Fatalf("invariant broken for %s", raw)
-		}
+// TestList_JSONInvariant: list JSON honors the summary invariant + required keys.
+func TestList_JSONInvariant(t *testing.T) {
+	work := t.TempDir()
+	cfg := writeConfig(t, "platform: gitlab\nowner: acme\ndocker: true\n")
+	r := run(t, work, "list", "--config", cfg, "--output", "json")
+	if r.code != 0 {
+		t.Fatalf("exit=%d stderr=%s", r.code, r.stderr)
 	}
-	dir := t.TempDir()
-	gen := run(t, dir, "generate", "--name", "demo", "--platform", "gitlab", "--docker", "--owner", "acme", "--output", "json")
-	check(t, gen.stdout)
-	lst := run(t, t.TempDir(), "list", "--name", "demo", "--platform", "forgejo", "--output", "json")
-	check(t, lst.stdout)
+	var d struct {
+		Project string `json:"project"`
+		Items   []any  `json:"items"`
+		Summary struct {
+			Created, Skipped, Overwritten, WouldCreate, WouldSkip, WouldOverwrite int
+		} `json:"summary"`
+	}
+	if err := json.Unmarshal([]byte(r.stdout), &d); err != nil {
+		t.Fatalf("bad json: %v", err)
+	}
+	s := d.Summary
+	if len(d.Items) != s.Created+s.Skipped+s.Overwritten+s.WouldCreate+s.WouldSkip+s.WouldOverwrite {
+		t.Fatalf("invariant broken:\n%s", r.stdout)
+	}
 }
 
-// TestHelpContract (T071): --help lists the commands and the exit-code table.
+// TestHelpContract: --help lists the commands and the exit-code table.
 func TestHelpContract(t *testing.T) {
 	r := run(t, t.TempDir(), "--help")
 	for _, want := range []string{"generate", "list", "version", "Exit codes:", "10", "usage error"} {
@@ -187,27 +90,4 @@ func TestVersionJSON(t *testing.T) {
 			t.Fatalf("version json missing %q", k)
 		}
 	}
-}
-
-func assertNoDelimiters(t *testing.T, dir string) {
-	t.Helper()
-	_ = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
-		if err != nil || info.IsDir() {
-			return nil
-		}
-		b, _ := os.ReadFile(path)
-		if bytes.Contains(b, []byte("[[")) || bytes.Contains(b, []byte("]]")) {
-			t.Fatalf("residual delimiters in %s", path)
-		}
-		return nil
-	})
-}
-
-func grepFile(t *testing.T, path, substr string) bool {
-	t.Helper()
-	b, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("read %s: %v", path, err)
-	}
-	return bytes.Contains(b, []byte(substr))
 }

@@ -72,13 +72,6 @@ func cleanEnv() []string {
 	return env
 }
 
-func mustExist(t *testing.T, dir, rel string) {
-	t.Helper()
-	if _, err := os.Stat(filepath.Join(dir, rel)); err != nil {
-		t.Fatalf("expected %s to exist: %v", rel, err)
-	}
-}
-
 func mustNotExist(t *testing.T, dir, rel string) {
 	t.Helper()
 	if _, err := os.Stat(filepath.Join(dir, rel)); err == nil {
