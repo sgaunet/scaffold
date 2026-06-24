@@ -34,8 +34,8 @@ templates embedded in the binary.
 
 'scaffold generate' runs an interactive, platform-first setup form and requires
 a terminal; its prompts are pre-filled from a config file, environment, and
-auto-detection. 'scaffold list' previews the file set non-interactively (pipe-
-and CI-safe). Existing files are skipped; generate prompts before overwriting.
+auto-detection. Existing files are skipped; generate prompts before overwriting.
+With no terminal generate exits with a usage error (exit 2).
 
 Exit codes:
   0   success
@@ -70,7 +70,6 @@ Exit codes:
 	root.PersistentFlags().BoolVarP(&g.verbose, "verbose", "v", false, "extra diagnostics on stderr")
 
 	root.AddCommand(newGenerateCmd(g))
-	root.AddCommand(newListCmd(g))
 	root.AddCommand(newVersionCmd(g))
 	return root
 }

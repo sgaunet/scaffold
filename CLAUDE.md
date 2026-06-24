@@ -97,8 +97,8 @@ adds two new ways to *supply* the existing generation inputs; generated files ar
 - `generate` is interactive-only: no profile flags, no `-i`. It always runs the
   `charmbracelet/huh` form (renders on stderr, platform-first, conditional fields, pre-filled
   from resolved defaults, confirm-before-write) and requires a terminal (TTY-gated with
-  `golang.org/x/term`; piped/`--quiet`/no-TTY → usage error, exit 2). `scaffold list` is the
-  non-interactive preview. `generate`/`list` keep only `--config`/`--no-config` + globals.
+  `golang.org/x/term`; piped/`--quiet`/no-TTY → usage error, exit 2). There is no
+  non-interactive preview; `generate` keeps only `--config`/`--no-config` + globals.
 - Constitution II boundary: `huh`/`cobra` only in `internal/cli`; `internal/scaffold` and
   `internal/config` stay CLI-free (assert via a consistency test).
 - Config is read-only (FR-022); default path `$XDG_CONFIG_HOME/scaffold/config.yml` →

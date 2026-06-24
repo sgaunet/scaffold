@@ -10,7 +10,7 @@ import (
 	"golang.org/x/term"
 )
 
-// configFlags are the config-file controls shared by generate and list.
+// configFlags are the config-file controls for generate.
 type configFlags struct {
 	path     string // --config: explicit config file path
 	noConfig bool   // --no-config: skip config loading entirely
@@ -59,7 +59,7 @@ var isTerminal = func(fd uintptr) bool { return term.IsTerminal(int(fd)) }
 // instead of hanging.
 func (g *globalOpts) requireTerminal() error {
 	if g.quiet || !isTerminal(os.Stdin.Fd()) || !isTerminal(os.Stderr.Fd()) {
-		return fmt.Errorf("%w: generate requires a terminal; set the defaults in the config file and run it in an interactive shell (use 'scaffold list' to preview non-interactively)", scaffold.ErrUsage)
+		return fmt.Errorf("%w: generate requires a terminal; set the defaults in the config file and run it in an interactive shell", scaffold.ErrUsage)
 	}
 	return nil
 }

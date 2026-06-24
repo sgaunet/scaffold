@@ -49,23 +49,12 @@ func TestGenerateRejectsRemovedFlags(t *testing.T) {
 	}
 }
 
-// TestListRejectsRemovedFlags: list lost the same profile flags; it is now
-// driven purely by config + detection.
-func TestListRejectsRemovedFlags(t *testing.T) {
-	t.Parallel()
-	for _, f := range []string{"--name", "--platform", "--docker"} {
-		_, _, code := runCLI(t, "list", f, "x")
-		if code != 2 {
-			t.Errorf("list %s should be a usage error (exit 2), got %d", f, code)
-		}
-	}
-}
-
 // TestInvalidOutputFlag → usage error, exit 2 (validated in PersistentPreRunE,
-// independent of any subcommand's TTY needs).
+// independent of any subcommand's TTY needs). Driven through version, a
+// non-interactive command that inherits the persistent --output flag.
 func TestInvalidOutputFlag(t *testing.T) {
 	t.Parallel()
-	_, _, code := runCLI(t, "list", "--output", "yaml")
+	_, _, code := runCLI(t, "version", "--output", "yaml")
 	if code != 2 {
 		t.Fatalf("exit = %d, want 2", code)
 	}

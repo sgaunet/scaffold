@@ -22,7 +22,6 @@ task build
 | Command | Purpose |
 |---------|---------|
 | `scaffold generate` (alias `gen`) | Guided setup form, then generate the files (requires a terminal) |
-| `scaffold list` | List the files that would be generated (non-interactive, pipe/CI-safe) |
 | `scaffold version` | Print version, commit, and build date |
 
 ## Usage
@@ -37,11 +36,8 @@ through it. Because it is interactive, `generate` **requires a terminal**.
 # Inside an existing Go repo: walk through setup, accepting the detected defaults
 scaffold generate
 
-# Preview what would be written for the resolved config — writes nothing, no terminal needed
-scaffold list
-
-# See a plan as JSON, without touching disk (drive the inputs from a config file)
-scaffold list --config ./ci/scaffold.yml --output json
+# Drive the proposed defaults from a specific config file
+scaffold generate --config ./ci/scaffold.yml
 ```
 
 The form starts with the platform choice, including **none** for the
@@ -49,13 +45,13 @@ platform-independent baseline only — in which case no CI or platform extras ar
 generated.
 
 In a pipe, under `--quiet`, or with no terminal, `generate` exits with a usage
-error (exit 2) instead of hanging; use `scaffold list` to preview the file set
-non-interactively.
+error (exit 2) instead of hanging. Set the defaults in the config file and run
+`generate` in an interactive shell.
 
 ### Defaults come from a config file
 
 There are no profile flags. Instead, a config file supplies the values proposed
-in the form (and the inputs `list` resolves). Create
+in the form. Create
 `~/.config/scaffold/config.yml` (honors `$XDG_CONFIG_HOME`):
 
 ```yaml

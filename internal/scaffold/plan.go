@@ -8,7 +8,7 @@ import (
 // Action is the decision for a single file.
 type Action string
 
-// Actions: past-tense for a real generate run; would-* for dry-run/list.
+// Actions: past-tense for a real generate run; would-* for dry-run.
 const (
 	ActionCreate         Action = "created"
 	ActionSkip           Action = "skipped"
@@ -50,7 +50,6 @@ type planMode int
 const (
 	modeGenerate planMode = iota // real write decisions
 	modeDryRun                   // would-* reflecting on-disk state
-	modeList                     // every file as would-create, no existence check
 )
 
 // BuildPlan computes the plan for the applicable templates.
@@ -62,12 +61,6 @@ func BuildPlan(reg *TemplateRegistry, p ProjectProfile, ctx RenderContext, dir s
 			return GenerationPlan{}, err
 		}
 		item := PlanItem{Template: t, Dest: dest}
-
-		if mode == modeList {
-			item.Action = ActionWouldCreate
-			plan.Items = append(plan.Items, item)
-			continue
-		}
 
 		exists := fileExists(filepath.Join(dir, dest))
 		dry := mode == modeDryRun

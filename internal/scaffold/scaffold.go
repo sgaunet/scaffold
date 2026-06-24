@@ -58,21 +58,3 @@ func Generate(ctx context.Context, reg *TemplateRegistry, p ProjectProfile, opts
 	}
 	return report, nil
 }
-
-// List returns the report of templates that would be produced for a profile,
-// writing nothing (FR-016). Every item is would-create.
-func List(p ProjectProfile, reg *TemplateRegistry) (Report, error) {
-	if err := p.Validate(); err != nil {
-		return Report{}, err
-	}
-	rctx := NewRenderContext(p)
-	plan, err := BuildPlan(reg, p, rctx, "", false, modeList)
-	if err != nil {
-		return Report{}, err
-	}
-	items := make([]ReportItem, 0, len(plan.Items))
-	for _, pi := range plan.Items {
-		items = append(items, ReportItem{Name: pi.Template.Name, Dest: pi.Dest, Action: pi.Action})
-	}
-	return newReport(p, true, items), nil
-}

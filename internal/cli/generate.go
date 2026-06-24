@@ -21,7 +21,8 @@ $XDG_CONFIG_HOME/scaffold/config.yml (else $HOME/.config/scaffold/config.yml),
 overridable with --config / $SCAFFOLD_CONFIG, or disabled with --no-config.
 
 With no terminal (piped, --quiet, or non-interactive) generate exits with a
-usage error; run 'scaffold list' to preview the file set non-interactively.`,
+usage error (exit 2); set the defaults in the config file and run it in an
+interactive shell.`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			cfg, err := g.resolveConfig(cf)
