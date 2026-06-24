@@ -1,41 +1,86 @@
+# https://taskfile.dev
 version: '3'
+includes:
+  dev: ./Taskfile_dev.yml
 
 vars:
   BINFILE: [[ .Binary ]]
 
 tasks:
   default:
+    desc: "List all tasks"
+    preconditions:
+      - sh: test -f .git/hooks/pre-commit
+        msg: "Pre-commit hook not found. Please run 'pre-commit install' to set it up."
     cmds:
-      - task: build
-
-  lint:
-    desc: Run golangci-lint
-    cmds:
-      - golangci-lint run ./...
-
-  test:
-    desc: Run tests
-    cmds:
-      - go test ./...
-
-  build:
-    desc: Build the static binary
-    cmds:
-      - CGO_ENABLED=0 go build -trimpath -o {{.BINFILE}} [[ .MainPath ]]
-
-  snapshot:
-    desc: Build a snapshot release
-    cmds:
-      - goreleaser release --snapshot --clean
-
-  release:
-    desc: Cut a release
-    cmds:
-      - goreleaser release --clean
+      - task -a
 
   check-before-commit:
-    desc: Lint, test, and build
+    desc: "Run checks before committing"
+    preconditions:
+      - test -f .git/hooks/pre-commit
+    deps:
+      - test
+      - snapshot
     cmds:
       - task: lint
-      - task: test
-      - task: build
+
+  lint:
+    desc: "Run linter"
+    cmds:
+      - go generate ./...
+      - golangci-lint run
+
+  test:
+    desc: "Run unit tests with race detection"
+    cmds:
+      - go test -count=2 -race ./...
+
+  tests:
+    desc: "Run e2e tests"
+    dir: e2etests
+    cmds:
+      - venom run testsuite.yml --output-dir log
+
+  coverage:
+    desc: "Generate coverage report"
+    cmds:
+      - go test -coverpkg=./... -coverprofile=profile.cov ./...
+      - |
+        if [ "$(uname)" = "Darwin" ]; then
+          sed -i '' '/cmd/d' profile.cov
+        else
+          sed -i '/cmd/d' profile.cov
+        fi
+      - go tool cover -func profile.cov | grep '^total:' | awk '{print $3}' | sed "s/%//"
+      - rm -f profile.cov
+
+  build:
+    desc: "Build binary"
+    cmds:
+      - CGO_ENABLED=0 go build -o {{.BINFILE}} [[ .MainPath ]]
+
+[[ if .Docker ]]
+  image:
+    desc: "Build and push Docker image"
+    deps:
+      - build
+    cmds:
+      - docker build --no-cache --build-arg VERSION=development . -t [[ .Registry ]]/[[ .Binary ]]:latest
+      - docker push [[ .Registry ]]/[[ .Binary ]]:latest
+[[ end ]]
+
+  snapshot:
+    desc: "Create a snapshot"
+    cmds:
+      - [[ .TokenEnv ]]="" goreleaser --clean --snapshot
+
+  release:
+    desc: "Create a release"
+    cmds:
+      - [[ .TokenEnv ]]="" goreleaser --clean
+
+  godoc:
+    desc: "Go documentation of [[ .Binary ]]"
+    cmds:
+      - go doc -http -c [[ .ModulePath ]]
