@@ -1,9 +1,9 @@
 version: "2"
 
 # Strategy: enable everything, then disable the opinionated, style-only, or
-# domain-inappropriate linters (this is a file-generating CLI, so gosec's file
-# checks and errcheck-on-fmt are noise). The high-value correctness linters
-# (govet, staticcheck, unused, ineffassign, errorlint, revive, ...) stay on.
+# domain-inappropriate linters. The high-value correctness linters (govet,
+# staticcheck, unused, ineffassign, errorlint, revive, ...) stay on. Tune the
+# disable list to taste.
 linters:
   default: all
   disable:
