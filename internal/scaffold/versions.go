@@ -4,7 +4,7 @@ package scaffold
 // pinned-by-default values; every one is overridable via the ProjectProfile.
 const (
 	DefaultGoVersion         = "1.26.1"
-	DefaultTaskVersion       = "3.40.1"
-	DefaultGolangciVersion   = "2.1.6"
+	DefaultTaskVersion       = "latest"
+	DefaultGolangciVersion   = "2.12.1"
 	DefaultGoreleaserVersion = "2.16.0"
 )
