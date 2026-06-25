@@ -1,41 +1,72 @@
+# https://taskfile.dev
 version: '3'
+includes:
+  dev: ./Taskfile_dev.yml
 
 vars:
   BINFILE: scaffold
 
 tasks:
   default:
+    desc: "List all tasks"
+    preconditions:
+      - sh: test -f .git/hooks/pre-commit
+        msg: "Pre-commit hook not found. Please run 'pre-commit install' to set it up."
     cmds:
-      - task: build
-
-  lint:
-    desc: Run golangci-lint
-    cmds:
-      - golangci-lint run ./...
-
-  test:
-    desc: Run tests
-    cmds:
-      - go test ./...
-
-  build:
-    desc: Build the static binary
-    cmds:
-      - CGO_ENABLED=0 go build -trimpath -o {{.BINFILE}} ./cmd/scaffold
-
-  snapshot:
-    desc: Build a snapshot release
-    cmds:
-      - goreleaser release --snapshot --clean
-
-  release:
-    desc: Cut a release
-    cmds:
-      - goreleaser release --clean
+      - task -a
 
   check-before-commit:
-    desc: Lint, test, and build
+    desc: "Run checks before committing"
+    preconditions:
+      - test -f .git/hooks/pre-commit
+    deps:
+      - test
+      - snapshot
     cmds:
       - task: lint
-      - task: test
-      - task: build
+
+  lint:
+    desc: "Run linter"
+    cmds:
+      - go generate ./...
+      - golangci-lint run
+
+  test:
+    desc: "Run unit tests with race detection"
+    cmds:
+      - go test -count=2 -race ./...
+
+  coverage:
+    desc: "Generate coverage report"
+    cmds:
+      - go test -coverpkg=./... -coverprofile=profile.cov ./...
+      - |
+        if [ "$(uname)" = "Darwin" ]; then
+          sed -i '' '/cmd/d' profile.cov
+        else
+          sed -i '/cmd/d' profile.cov
+        fi
+      - go tool cover -func profile.cov | grep '^total:' | awk '{print $3}' | sed "s/%//"
+      - rm -f profile.cov
+
+  build:
+    desc: "Build binary"
+    cmds:
+      - CGO_ENABLED=0 go build -o {{.BINFILE}} ./cmd/scaffold
+
+
+
+  snapshot:
+    desc: "Create a snapshot"
+    cmds:
+      - GITEA_TOKEN="" goreleaser --clean --snapshot
+
+  release:
+    desc: "Create a release"
+    cmds:
+      - GITEA_TOKEN="" goreleaser --clean
+
+  godoc:
+    desc: "Go documentation of scaffold"
+    cmds:
+      - go doc -http -c github.com/sgaunet/scaffold
