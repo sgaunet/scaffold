@@ -36,12 +36,6 @@ tasks:
     cmds:
       - go test -count=2 -race ./...
 
-  tests:
-    desc: "Run e2e tests"
-    dir: e2etests
-    cmds:
-      - venom run testsuite.yml --output-dir log
-
   coverage:
     desc: "Generate coverage report"
     cmds:
