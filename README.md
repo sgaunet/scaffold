@@ -1,5 +1,11 @@
 # scaffold
 
+> **Note:** this is a personal tool, built around my own workflow and
+> conventions (my `mise`/`Taskfile`/`goreleaser` setup, my forge choices, my
+> defaults). It's public and MIT-licensed, so feel free to fork it or use it
+> as-is — but it isn't a community-driven project, and PRs bending it toward
+> other workflows are unlikely to be merged.
+
 A single static Go CLI that generates a Go project's tooling, CI, and config
 files from templates embedded in the binary. Pick at most one forge platform and
 an optional container toggle; existing files are skipped, and `generate` prompts
