@@ -81,7 +81,8 @@ Precedence is **env (`SCAFFOLD_*`) > config file > auto-detection (`go.mod` /
 ### What gets generated
 
 - **Always**: `.goreleaser.yaml`, `mise.toml`, `.golangci.yml`,
-  `.pre-commit-config.yaml`, `Taskfile.yml`, `Taskfile_dev.yml`
+  `.pre-commit-config.yaml`, `Taskfile.yml`, `Taskfile_dev.yml`,
+  `.vscode/settings.json`, `.vscode/extensions.json`
 - **GitHub**: `.github/workflows/{linter,test,snapshot,release}.yml`,
   `.github/dependabot.yml`, `.github/FUNDING.yml`
 - **Forgejo**: `.forgejo/workflows/{lint,test,snapshot,release}.yml`

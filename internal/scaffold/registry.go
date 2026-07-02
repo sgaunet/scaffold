@@ -45,6 +45,8 @@ func (r *TemplateRegistry) registerBaseline() {
 	r.Register(Template{Name: "pre-commit", Source: "templates/pre-commit-config.yaml.tmpl", DestTmpl: ".pre-commit-config.yaml", Applies: always, Mode: fileMode})
 	r.Register(Template{Name: "taskfile", Source: "templates/Taskfile.yml.tmpl", DestTmpl: "Taskfile.yml", Applies: always, Mode: fileMode})
 	r.Register(Template{Name: "taskfile-dev", Source: "templates/Taskfile_dev.yml.tmpl", DestTmpl: "Taskfile_dev.yml", Applies: always, Mode: fileMode})
+	r.Register(Template{Name: "vscode-settings", Source: "templates/vscode/settings.json.tmpl", DestTmpl: ".vscode/settings.json", Applies: always, Mode: fileMode})
+	r.Register(Template{Name: "vscode-extensions", Source: "templates/vscode/extensions.json.tmpl", DestTmpl: ".vscode/extensions.json", Applies: always, Mode: fileMode})
 }
 
 func (r *TemplateRegistry) registerPlatform() {

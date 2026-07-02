@@ -60,10 +60,10 @@ func TestPlatformIsolation(t *testing.T) {
 		}
 	}
 
-	// Unset platform → only the six baseline files, no CI/extras.
+	// Unset platform → only the eight baseline files, no CI/extras.
 	none := applicableNames(base)
-	if len(none) != 6 {
-		t.Fatalf("unset platform produced %d files, want 6 baseline: %v", len(none), none)
+	if len(none) != 8 {
+		t.Fatalf("unset platform produced %d files, want 8 baseline: %v", len(none), none)
 	}
 	for name := range none {
 		if strings.ContainsAny(name, "/") {

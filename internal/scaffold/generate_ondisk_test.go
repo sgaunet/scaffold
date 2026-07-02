@@ -62,14 +62,14 @@ func fileHas(t *testing.T, path, sub string) bool {
 	return strings.Contains(string(b), sub)
 }
 
-// TestGenerateWritesBaselineFileSet: a baseline run writes the six tool files and
+// TestGenerateWritesBaselineFileSet: a baseline run writes the eight tool files and
 // no platform/container artifacts (US1).
 func TestGenerateWritesBaselineFileSet(t *testing.T) {
 	t.Parallel()
 	dir := generateOnDisk(t, ondiskProfile(t, func(p *scaffold.ProjectProfile) {
 		p.Platform = scaffold.PlatformNone
 	}))
-	for _, f := range []string{".goreleaser.yaml", "mise.toml", ".golangci.yml", ".pre-commit-config.yaml", "Taskfile.yml", "Taskfile_dev.yml"} {
+	for _, f := range []string{".goreleaser.yaml", "mise.toml", ".golangci.yml", ".pre-commit-config.yaml", "Taskfile.yml", "Taskfile_dev.yml", ".vscode/settings.json", ".vscode/extensions.json"} {
 		if !onDisk(dir, f) {
 			t.Errorf("baseline file %s missing", f)
 		}
