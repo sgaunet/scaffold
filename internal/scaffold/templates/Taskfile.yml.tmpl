@@ -67,12 +67,12 @@ tasks:
   snapshot:
     desc: "Create a snapshot"
     cmds:
-      - [[ .TokenEnv ]]="" goreleaser --clean --snapshot
+      - [[ range .OtherTokenEnvs ]][[ . ]]="" [[ end ]]goreleaser --clean --snapshot
 
   release:
     desc: "Create a release"
     cmds:
-      - [[ .TokenEnv ]]="" goreleaser --clean
+      - goreleaser --clean
 
   godoc:
     desc: "Go documentation of [[ .Binary ]]"

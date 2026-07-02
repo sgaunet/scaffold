@@ -35,17 +35,35 @@ type RenderContext struct {
 	GolangciVersion   string
 	GoreleaserVersion string
 	FundingUser       string
-	TokenEnv          string
+	OtherTokenEnvs    []string
 	Homebrew          bool
 	HomebrewTap       string
 }
 
+// allPlatformIDs is the fixed order used to derive OtherTokenEnvs
+// deterministically across runs.
+var allPlatformIDs = []PlatformID{PlatformGitHub, PlatformGitLab, PlatformForgejo}
+
+// otherTokenEnvs lists every known platform's release token env var except
+// current's. goreleaser's host auto-detection errors out when more than one
+// recognized token env var is set (common in dev shells that export several
+// forge tokens at once), so the snapshot task clears everything but the
+// project's own platform.
+func otherTokenEnvs(current PlatformID) []string {
+	out := make([]string, 0, len(allPlatformIDs))
+	for _, id := range allPlatformIDs {
+		if id == current {
+			continue
+		}
+		if plat, ok := KnownPlatform(id); ok {
+			out = append(out, plat.ReleaseTokenEnv)
+		}
+	}
+	return out
+}
+
 // NewRenderContext derives the render context from a profile.
 func NewRenderContext(p ProjectProfile) RenderContext {
-	tokenEnv := ""
-	if plat, ok := KnownPlatform(p.Platform); ok {
-		tokenEnv = plat.ReleaseTokenEnv
-	}
 	return RenderContext{
 		ProjectName:       p.ProjectName,
 		Binary:            p.Binary,
@@ -65,7 +83,7 @@ func NewRenderContext(p ProjectProfile) RenderContext {
 		GolangciVersion:   p.GolangciVersion,
 		GoreleaserVersion: p.GoreleaserVersion,
 		FundingUser:       p.FundingUser,
-		TokenEnv:          tokenEnv,
+		OtherTokenEnvs:    otherTokenEnvs(p.Platform),
 		Homebrew:          p.Homebrew,
 		HomebrewTap:       p.HomebrewTap,
 	}

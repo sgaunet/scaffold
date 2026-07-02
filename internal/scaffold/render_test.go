@@ -125,6 +125,50 @@ func TestHomebrewRendering(t *testing.T) {
 	})
 }
 
+// TestTaskfileTokenEnvHandling verifies the snapshot task clears every other
+// platform's release token env var (so goreleaser's host auto-detection isn't
+// confused by multiple tokens set in a dev shell) while leaving the current
+// platform's own token untouched, and that the release task carries no token
+// prefix at all.
+func TestTaskfileTokenEnvHandling(t *testing.T) {
+	t.Parallel()
+	base := scaffold.ProjectProfile{
+		ProjectName: "demo", Binary: "demo", ModulePath: "github.com/acme/demo",
+		Owner: "acme", Host: "github.com", MainPath: "./cmd/demo", GoVersion: "1.26.1",
+	}
+
+	cases := []struct {
+		platform scaffold.PlatformID
+		want     []string
+		absent   []string
+	}{
+		{scaffold.PlatformGitHub, []string{`GITLAB_TOKEN=""`, `GITEA_TOKEN=""`}, []string{`GITHUB_TOKEN=""`}},
+		{scaffold.PlatformGitLab, []string{`GITHUB_TOKEN=""`, `GITEA_TOKEN=""`}, []string{`GITLAB_TOKEN=""`}},
+		{scaffold.PlatformForgejo, []string{`GITHUB_TOKEN=""`, `GITLAB_TOKEN=""`}, []string{`GITEA_TOKEN=""`}},
+	}
+	for _, c := range cases {
+		t.Run(string(c.platform), func(t *testing.T) {
+			t.Parallel()
+			p := base
+			p.Platform = c.platform
+			tf := renderNamed(t, p, "taskfile")
+			for _, want := range c.want {
+				if !strings.Contains(tf, want) {
+					t.Fatalf("taskfile for %s missing %q:\n%s", c.platform, want, tf)
+				}
+			}
+			for _, absent := range c.absent {
+				if strings.Contains(tf, absent) {
+					t.Fatalf("taskfile for %s must not contain %q:\n%s", c.platform, absent, tf)
+				}
+			}
+			if !strings.Contains(tf, "- goreleaser --clean\n") {
+				t.Fatalf("release task must be a bare goreleaser --clean:\n%s", tf)
+			}
+		})
+	}
+}
+
 // TestBinaryNameSubstituted verifies the binary name reaches the key files.
 func TestBinaryNameSubstituted(t *testing.T) {
 	t.Parallel()
