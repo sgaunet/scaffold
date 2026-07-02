@@ -72,6 +72,27 @@ func TestPlatformIsolation(t *testing.T) {
 	}
 }
 
+// TestForgejoReleaseDisableWiring: only the release descriptor carries a
+// DisableIfExists/DisableSuffix pair; lint/test/snapshot are untouched.
+func TestForgejoReleaseDisableWiring(t *testing.T) {
+	t.Parallel()
+	reg := scaffold.NewRegistry()
+	for _, tpl := range reg.All() {
+		if !strings.HasPrefix(tpl.Name, "forgejo/workflows/") {
+			continue
+		}
+		if tpl.Name == "forgejo/workflows/release" {
+			if tpl.DisableIfExists != ".github" || tpl.DisableSuffix != ".disabled" {
+				t.Fatalf("release descriptor has wrong disable wiring: %+v", tpl)
+			}
+			continue
+		}
+		if tpl.DisableIfExists != "" || tpl.DisableSuffix != "" {
+			t.Fatalf("%s must not carry disable wiring: %+v", tpl.Name, tpl)
+		}
+	}
+}
+
 // TestDockerGating: Dockerfile appears only when Docker is on (SC-005).
 func TestDockerGating(t *testing.T) {
 	t.Parallel()

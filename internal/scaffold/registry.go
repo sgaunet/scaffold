@@ -61,15 +61,23 @@ func (r *TemplateRegistry) registerPlatform() {
 	r.Register(Template{Name: "github/dependabot", Source: "templates/github/dependabot.yml.tmpl", DestTmpl: ".github/dependabot.yml", Applies: platformIs(PlatformGitHub), Mode: fileMode})
 	r.Register(Template{Name: "github/FUNDING", Source: "templates/github/FUNDING.yml.tmpl", DestTmpl: ".github/FUNDING.yml", Applies: platformIs(PlatformGitHub), Mode: fileMode})
 
-	// Forgejo workflows.
+	// Forgejo workflows. The release workflow is written but neutralized
+	// (suffixed, so Forgejo's *.yml/*.yaml glob ignores it) when a .github
+	// directory already exists, since GitHub then owns releases and goreleaser
+	// can only target one host per run.
 	for _, wf := range []string{"lint", "test", "snapshot", "release"} {
-		r.Register(Template{
+		tpl := Template{
 			Name:     "forgejo/workflows/" + wf,
 			Source:   "templates/forgejo/workflows/" + wf + ".yml.tmpl",
 			DestTmpl: ".forgejo/workflows/" + wf + ".yml",
 			Applies:  platformIs(PlatformForgejo),
 			Mode:     fileMode,
-		})
+		}
+		if wf == "release" {
+			tpl.DisableIfExists = ".github"
+			tpl.DisableSuffix = ".disabled"
+		}
+		r.Register(tpl)
 	}
 
 	// GitLab single pipeline.
