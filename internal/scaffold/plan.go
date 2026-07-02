@@ -60,6 +60,9 @@ func BuildPlan(reg *TemplateRegistry, p ProjectProfile, ctx RenderContext, dir s
 		if err != nil {
 			return GenerationPlan{}, err
 		}
+		if t.DisableIfExists != "" && fileExists(filepath.Join(dir, t.DisableIfExists)) {
+			dest += t.DisableSuffix
+		}
 		item := PlanItem{Template: t, Dest: dest}
 
 		exists := fileExists(filepath.Join(dir, dest))

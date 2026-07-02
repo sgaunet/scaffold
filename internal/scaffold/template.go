@@ -10,6 +10,14 @@ type Template struct {
 	DestTmpl string // destination path (itself rendered) relative to the target dir
 	Applies  func(ProjectProfile) bool
 	Mode     fs.FileMode
+
+	// DisableIfExists, if non-empty, is a path relative to the target dir whose
+	// presence causes Dest to be suffixed with DisableSuffix, neutralizing the
+	// generated file for its runner without skipping generation entirely.
+	// Directory-vs-file is not distinguished (a stray file at this path is
+	// treated the same as a directory).
+	DisableIfExists string
+	DisableSuffix   string // e.g. ".disabled"; only meaningful if DisableIfExists != ""
 }
 
 const fileMode = fs.FileMode(0o644)

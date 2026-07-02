@@ -92,6 +92,7 @@ func TestGenerateWritesPlatformFileSet(t *testing.T) {
 		{scaffold.PlatformGitHub,
 			[]string{".github/workflows/linter.yml", ".github/workflows/test.yml", ".github/workflows/snapshot.yml", ".github/workflows/release.yml", ".github/dependabot.yml", ".github/FUNDING.yml"},
 			[]string{".gitlab-ci.yml", ".forgejo"}},
+		// Forgejo-only case (no pre-existing .github dir): release.yml runs.
 		{scaffold.PlatformForgejo,
 			[]string{".forgejo/workflows/release.yml"},
 			[]string{".github/dependabot.yml", ".github/FUNDING.yml", ".gitlab-ci.yml"}},
@@ -164,5 +165,32 @@ func TestGenerateHomebrewMarkers(t *testing.T) {
 	}))
 	if !fileHas(t, filepath.Join(custom, ".goreleaser.yaml"), "name: homebrew-custom") {
 		t.Error("expected custom tap name homebrew-custom")
+	}
+}
+
+// TestGenerateForgejoReleaseDisabledWhenGithubDirExists: when a .github dir
+// already owns releases, the Forgejo release workflow is written inert
+// (.disabled suffix) while lint/test/snapshot stay live.
+func TestGenerateForgejoReleaseDisabledWhenGithubDirExists(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(dir, ".github"), 0o755); err != nil {
+		t.Fatalf("mkdir .github: %v", err)
+	}
+	p := ondiskProfile(t, func(p *scaffold.ProjectProfile) { p.Platform = scaffold.PlatformForgejo })
+	if _, err := scaffold.Generate(context.Background(), scaffold.NewRegistry(), p, scaffold.Options{Dir: dir}); err != nil {
+		t.Fatalf("generate: %v", err)
+	}
+
+	if !onDisk(dir, ".forgejo/workflows/release.yml.disabled") {
+		t.Error("expected release.yml.disabled when .github dir exists")
+	}
+	if onDisk(dir, ".forgejo/workflows/release.yml") {
+		t.Error("release.yml must not be written live when .github dir exists")
+	}
+	for _, f := range []string{".forgejo/workflows/lint.yml", ".forgejo/workflows/test.yml", ".forgejo/workflows/snapshot.yml"} {
+		if !onDisk(dir, f) {
+			t.Errorf("%s must stay live regardless of .github presence", f)
+		}
 	}
 }
