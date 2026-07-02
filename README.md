@@ -5,6 +5,10 @@
 > defaults). It's public and MIT-licensed, so feel free to fork it or use it
 > as-is — but it isn't a community-driven project, and PRs bending it toward
 > other workflows are unlikely to be merged.
+>
+> It's also almost entirely vibe-coded — built with heavy AI assistance
+> rather than hand-crafted line by line. Review before trusting it in
+> anything critical.
 
 A single static Go CLI that generates a Go project's tooling, CI, and config
 files from templates embedded in the binary. Pick at most one forge platform and
