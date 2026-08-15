@@ -2,6 +2,8 @@ name: Snapshot
 on:
   push:
     branches: [main]
+permissions:
+  contents: read
 jobs:
   snapshot:
     runs-on: ubuntu-latest
@@ -13,4 +15,5 @@ jobs:
         with:
           install: true
           cache: true
+
       - run: task snapshot
