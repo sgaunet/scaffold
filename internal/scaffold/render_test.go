@@ -169,6 +169,66 @@ func TestTaskfileTokenEnvHandling(t *testing.T) {
 	}
 }
 
+// TestWorkflowsProvisionToolsWithMise asserts every Actions-style workflow
+// template (GitHub and Forgejo) provisions its toolchain through
+// jdx/mise-action and runs work through a task target, instead of installing Go
+// or bootstrapping mise by hand. mise.toml stays the single source of truth for
+// tool versions.
+func TestWorkflowsProvisionToolsWithMise(t *testing.T) {
+	t.Parallel()
+	const wantWorkflows = 4 // lint(er), test, snapshot, release
+	required := []string{"mise-action@v4", "install: true", "cache: true", "run: task "}
+	forbidden := []string{"actions/setup-go", "mise.run", "mise trust", "mise exec", "actions/cache@"}
+
+	cases := []struct {
+		name     string
+		platform scaffold.PlatformID
+		docker   bool
+	}{
+		{"github", scaffold.PlatformGitHub, false},
+		{"github-docker", scaffold.PlatformGitHub, true},
+		{"forgejo", scaffold.PlatformForgejo, false},
+		{"forgejo-docker", scaffold.PlatformForgejo, true},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			p := scaffold.ProjectProfile{
+				ProjectName: "demo", Binary: "demo", ModulePath: "github.com/acme/demo",
+				Owner: "acme", Host: "git.example.com", Platform: c.platform,
+				Docker: c.docker, MainPath: "./cmd/demo",
+				Registry: "git.example.com/acme/demo", GoVersion: "1.26.1",
+			}
+			ctx := scaffold.NewRenderContext(p)
+			seen := 0
+			for _, tmpl := range scaffold.NewRegistry().Applicable(p) {
+				if !strings.Contains(tmpl.Name, "workflows/") {
+					continue
+				}
+				seen++
+				out, err := scaffold.Render(tmpl, ctx)
+				if err != nil {
+					t.Fatalf("render %s: %v", tmpl.Name, err)
+				}
+				body := string(out)
+				for _, want := range required {
+					if !strings.Contains(body, want) {
+						t.Fatalf("%s must provision tools with mise, missing %q:\n%s", tmpl.Name, want, body)
+					}
+				}
+				for _, banned := range forbidden {
+					if strings.Contains(body, banned) {
+						t.Fatalf("%s must not bootstrap tools by hand, found %q:\n%s", tmpl.Name, banned, body)
+					}
+				}
+			}
+			if seen != wantWorkflows {
+				t.Fatalf("expected %d workflow templates for %s, got %d", wantWorkflows, c.platform, seen)
+			}
+		})
+	}
+}
+
 // TestBinaryNameSubstituted verifies the binary name reaches the key files.
 func TestBinaryNameSubstituted(t *testing.T) {
 	t.Parallel()

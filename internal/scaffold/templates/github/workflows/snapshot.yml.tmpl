@@ -2,6 +2,8 @@ name: Snapshot
 on:
   push:
     branches: [main]
+permissions:
+  contents: read
 jobs:
   snapshot:
     runs-on: ubuntu-latest
@@ -13,4 +15,10 @@ jobs:
         with:
           install: true
           cache: true
+[[ if .Docker ]]
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+[[ end ]]
       - run: task snapshot
