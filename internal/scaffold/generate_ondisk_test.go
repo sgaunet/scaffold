@@ -90,7 +90,7 @@ func TestGenerateWritesPlatformFileSet(t *testing.T) {
 		want, absent []string
 	}{
 		{scaffold.PlatformGitHub,
-			[]string{".github/workflows/linter.yml", ".github/workflows/test.yml", ".github/workflows/snapshot.yml", ".github/workflows/release.yml", ".github/dependabot.yml", ".github/FUNDING.yml"},
+			[]string{".github/workflows/linter.yml", ".github/workflows/test.yml", ".github/workflows/snapshot.yml", ".github/workflows/release.yml", ".github/workflows/vulnerability-scan.yml", ".github/dependabot.yml", ".github/FUNDING.yml"},
 			[]string{".gitlab-ci.yml", ".forgejo"}},
 		// Forgejo-only case (no pre-existing .github dir): release.yml runs.
 		{scaffold.PlatformForgejo,

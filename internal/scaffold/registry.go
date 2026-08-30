@@ -51,7 +51,7 @@ func (r *TemplateRegistry) registerBaseline() {
 
 func (r *TemplateRegistry) registerPlatform() {
 	// GitHub workflows + extras.
-	for _, wf := range []string{"linter", "test", "snapshot", "release"} {
+	for _, wf := range []string{"linter", "test", "snapshot", "release", "vulnerability-scan"} {
 		r.Register(Template{
 			Name:     "github/workflows/" + wf,
 			Source:   "templates/github/workflows/" + wf + ".yml.tmpl",
