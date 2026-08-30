@@ -176,19 +176,21 @@ func TestTaskfileTokenEnvHandling(t *testing.T) {
 // tool versions.
 func TestWorkflowsProvisionToolsWithMise(t *testing.T) {
 	t.Parallel()
-	const wantWorkflows = 4 // lint(er), test, snapshot, release
 	required := []string{"mise-action@v4", "install: true", "cache: true", "run: task "}
 	forbidden := []string{"actions/setup-go", "mise.run", "mise trust", "mise exec", "actions/cache@"}
 
+	// GitHub also gets vulnerability-scan; Forgejo has no Code Scanning to
+	// upload SARIF to, so it stays at four.
 	cases := []struct {
-		name     string
-		platform scaffold.PlatformID
-		docker   bool
+		name          string
+		platform      scaffold.PlatformID
+		docker        bool
+		wantWorkflows int
 	}{
-		{"github", scaffold.PlatformGitHub, false},
-		{"github-docker", scaffold.PlatformGitHub, true},
-		{"forgejo", scaffold.PlatformForgejo, false},
-		{"forgejo-docker", scaffold.PlatformForgejo, true},
+		{"github", scaffold.PlatformGitHub, false, 5},
+		{"github-docker", scaffold.PlatformGitHub, true, 5},
+		{"forgejo", scaffold.PlatformForgejo, false, 4},
+		{"forgejo-docker", scaffold.PlatformForgejo, true, 4},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -222,8 +224,8 @@ func TestWorkflowsProvisionToolsWithMise(t *testing.T) {
 					}
 				}
 			}
-			if seen != wantWorkflows {
-				t.Fatalf("expected %d workflow templates for %s, got %d", wantWorkflows, c.platform, seen)
+			if seen != c.wantWorkflows {
+				t.Fatalf("expected %d workflow templates for %s, got %d", c.wantWorkflows, c.platform, seen)
 			}
 		})
 	}

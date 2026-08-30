@@ -1,15 +1,10 @@
+# Go modules are deliberately absent. Dependabot reports every advisory that
+# touches the module graph, whether or not the vulnerable code is reachable, and
+# that noise crowds out the findings that matter. The Vulnerability Scan
+# workflow runs govulncheck instead, which filters by symbol reachability.
+# See https://words.filippo.io/dependabot/
 version: 2
 updates:
-  # Go modules: highest attention. Checked weekly, one PR per module so each
-  # bump is reviewed (and CI-verified) on its own.
-  - package-ecosystem: gomod
-    directory: "/"
-    schedule:
-      interval: weekly
-      day: monday
-      time: "06:00"
-      timezone: Etc/UTC
-    open-pull-requests-limit: 10
 [[ if .Docker ]]
   # Docker: base-image bumps are rarely urgent, so monthly is enough.
   - package-ecosystem: docker
