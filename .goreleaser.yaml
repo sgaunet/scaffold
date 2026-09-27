@@ -54,7 +54,8 @@ changelog:
 homebrew_casks:
   - name: scaffold
     homepage: "https://github.com/sgaunet/scaffold"
-    description: "scaffold"
+    description: "Generate a Go project's tooling, CI and config files from embedded templates"
+    directory: Casks
     binaries:
       - scaffold
     generate_completions_from_executable:
@@ -66,15 +67,18 @@ homebrew_casks:
         - zsh
         - fish
     # Unsigned binaries are quarantined by macOS Gatekeeper; strip the attribute.
+    # This must be a pre-install hook: postflight runs *after*
+    # generate_completions_from_executable, which has to execute the staged
+    # binary, and a quarantined binary cannot be executed.
     hooks:
-      post:
+      pre:
         install: |
           if OS.mac?
             system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}"]
           end
     commit_author:
       name: sgaunet
-      email: sgaunet@users.noreply.github.com
+      email: 1552102+sgaunet@users.noreply.github.com
     repository:
       owner: sgaunet
       name: homebrew-tools
