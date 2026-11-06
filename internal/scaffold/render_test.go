@@ -97,6 +97,17 @@ func TestHomebrewRendering(t *testing.T) {
 		if strings.Contains(grl, "[[") || strings.Contains(grl, "]]") {
 			t.Fatalf("residual delimiters in homebrew_casks block:\n%s", grl)
 		}
+		// Quarantine strip must use declarative install_steps (Homebrew deprecated
+		// raw-Ruby preflight/postflight) and run pre-install so completion
+		// generation can execute the staged binary.
+		if !strings.Contains(grl, "pre:\n        install_steps: |") || !strings.Contains(grl, `"{{ .StagedPath }}"`) {
+			t.Fatalf("goreleaser cask hook not a pre install_steps with StagedPath:\n%s", grl)
+		}
+		for _, banned := range []string{"post:", "system_command", "#{staged_path}"} {
+			if strings.Contains(grl, banned) {
+				t.Fatalf("goreleaser cask hook contains deprecated %q:\n%s", banned, grl)
+			}
+		}
 		rel := renderNamed(t, p, "github/workflows/release")
 		if !strings.Contains(rel, "HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}") {
 			t.Fatalf("release workflow missing tap token:\n%s", rel)

@@ -6,5 +6,5 @@ const (
 	DefaultGoVersion         = "1.26.1"
 	DefaultTaskVersion       = "latest"
 	DefaultGolangciVersion   = "2.12.1"
-	DefaultGoreleaserVersion = "2.16.0"
+	DefaultGoreleaserVersion = "2.20.0" // >= 2.19 required by the cask hooks' install_steps
 )
