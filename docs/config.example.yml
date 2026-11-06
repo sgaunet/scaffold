@@ -29,4 +29,4 @@ homebrew: false
 # go-version: "1.26.1"
 # task-version: "3.40.1"
 # golangci-version: "2.1.6"
-# goreleaser-version: "2.16.0"
+# goreleaser-version: "2.20.0"

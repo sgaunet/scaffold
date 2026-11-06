@@ -96,11 +96,16 @@ homebrew_casks:
         - zsh
         - fish
     # Unsigned binaries are quarantined by macOS Gatekeeper; strip the attribute.
+    # This must be a pre-install hook: post-install runs *after*
+    # generate_completions_from_executable, which has to execute the staged
+    # binary, and a quarantined binary cannot be executed.
+    # install_steps (GoReleaser >= 2.19) emits Homebrew's declarative
+    # preflight_steps; the raw-Ruby `install` option emits the deprecated preflight.
     hooks:
-      post:
-        install: |
-          if OS.mac?
-            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}"]
+      pre:
+        install_steps: |
+          on_macos do
+            run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "{{ .StagedPath }}"]
           end
     commit_author:
       name: [[ .Owner ]]
